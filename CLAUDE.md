@@ -136,4 +136,6 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   `area: what changed`. Bodies explain why, and say what was tested and what wasn't
   (e.g. "not yet applied to a cluster"). The remote is the private GitHub repo
   `morandeirachema/Lab`.
+- CI tools are pinned in `.github/requirements-ci.txt` and actions by SHA. Bump them through
+  Dependabot's PRs, or by hand together with a local `make check` on the same versions.
 - Nothing has been applied to real hardware yet. Treat the first `make apply` as a test.

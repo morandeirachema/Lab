@@ -30,8 +30,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install shellcheck, yamllint, ansible-core and ansible-lint
-        run: pip install shellcheck-py yamllint ansible-core ansible-lint
+      - name: Install the pinned CI tools
+        run: pip install -r .github/requirements-ci.txt
 
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4  # v2.0.2
         with:

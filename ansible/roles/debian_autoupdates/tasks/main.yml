@@ -19,3 +19,15 @@
       // Managed by Ansible (debian_autoupdates)
       APT::Periodic::Update-Package-Lists "1";
       APT::Periodic::Unattended-Upgrade "1";
+
+# The lab roles edit some packages' conffiles (/etc/nftables.conf,
+# /etc/default/prometheus). unattended-upgrades "holds back any package" whose
+# upgrade would prompt about a conffile, so those security updates would never
+# install. Its README's documented answer: keep the old conffile.
+- name: Keep the managed config files on upgrades, so nothing is held back
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-local
+    mode: "0644"
+    content: |
+      // Managed by Ansible (debian_autoupdates)
+      Dpkg::Options {"--force-confold"};
