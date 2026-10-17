@@ -128,11 +128,12 @@ Put that path, normally `/volume1/proxmox`, in `nas.export` in `config/lab.yml`,
 `nas.enabled: true`, then:
 
 ```sh
-make plan    # + proxmox_storage_nfs.nas, + proxmox_backup_job.lab["wallix"]
+make plan    # + proxmox_storage_nfs.nas, + proxmox_backup_job.lab["wallix"] and ["infra"]
 make apply
 ```
 
-Every node then shows the `nas` storage, and the `wallix` pool is backed up every Saturday.
+Every node then shows the `nas` storage. The `wallix` pool (the lab) and the `infra` pool (`labgw`,
+`obs`) are backed up every Saturday.
 
 ## The third quorum vote (QDevice)
 

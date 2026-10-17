@@ -26,7 +26,7 @@ nas:
   options: vers=4.1            # DSM: File Services > NFS > Maximum NFS protocol = NFSv4.1
   content: [backup, iso, vztmpl]  # what pve-docs lists for NFS (import is not listed)
   backup:
-    pools: [wallix]            # one weekly job per pool
+    pools: [wallix, infra]     # one weekly job per pool (infra = labgw, obs)
     schedule: "sat 03:00"
     keep_last: 3
     keep_weekly: 4

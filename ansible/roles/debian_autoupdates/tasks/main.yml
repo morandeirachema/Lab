@@ -1,0 +1,21 @@
+---
+# Automatic security updates for the lab's long-running Debian guests
+# (the gateway container and the observability VM). The two APT::Periodic
+# lines are the "Manual Setup" in unattended-upgrades' README; which origins
+# get upgraded stays the package default (/etc/apt/apt.conf.d/50unattended-upgrades),
+# so third-party repositories such as Grafana's are not upgraded unattended.
+- name: Install unattended-upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Turn on the daily update check and unattended upgrade
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: "0644"
+    content: |
+      // Managed by Ansible (debian_autoupdates)
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";

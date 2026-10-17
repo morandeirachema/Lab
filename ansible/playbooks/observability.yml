@@ -13,3 +13,4 @@
         name: lab
   roles:
     - role: observability
+    - role: debian_autoupdates

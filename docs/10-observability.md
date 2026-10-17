@@ -63,6 +63,10 @@ flowchart LR
   with its OTLP receiver patched out. Alloy turns OTLP into remote write, which Prometheus
   accepts with `--web.enable-remote-write-receiver`.
 - **Retention:** 14 days for both. Prometheus also stops at 10 GB.
+- **Security updates:** `obs` and `labgw` install Debian's security updates unattended
+  (`debian_autoupdates`). Grafana's repository is not in the unattended origins, so Grafana,
+  Loki and Alloy change only when you upgrade them yourself (`apt upgrade` on `obs`).
+  `make obs` installs them but never upgrades them.
 
 ## Build it
 
@@ -74,7 +78,9 @@ export GRAFANA_ADMIN_PASSWORD='…'           # first run only: 12+ chars, lette
 make obs
 ```
 
-Open **Grafana at `http://10.10.40.10:3000`** from the Mac. That needs the route to
+Open **Grafana at `http://obs.lab.home.arpa:3000`** (or `http://10.10.40.10:3000`) from the Mac.
+The gateway publishes the `obs` name, and Pi-hole's forwarding entry or the Mac's resolver file
+from [02](02-network.md#reaching-the-lab-from-the-mac) sends the query there. That needs the route to
 `10.10.40.0/24` via `labgw`, as in [02-network.md](02-network.md#reaching-the-lab-from-the-mac).
 Log in as `admin` with that password. Grafana applies it once, at first start. Prometheus
 and Loki are already set up as data sources.

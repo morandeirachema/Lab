@@ -22,3 +22,4 @@
       ansible.builtin.setup:
   roles:
     - role: lab_gateway
+    - role: debian_autoupdates

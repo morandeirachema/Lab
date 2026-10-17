@@ -10,6 +10,11 @@ expand-hosts
 dhcp-authoritative
 bind-dynamic
 
+{% if lab.observability is defined and lab.observability.enabled | default(false) %}
+# The observability VM has a static address, so it gets a fixed record.
+host-record={{ lab.observability.hostname }}.{{ lab.gateway.domain }},{{ hostvars['obs'].ansible_host }}
+
+{% endif %}
 # DNS for the home LAN (lab names), never DHCP there
 interface=eth0
 no-dhcp-interface=eth0
