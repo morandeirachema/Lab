@@ -21,6 +21,13 @@ case $OVA in *.ova|*.OVA) ;; *) die "expected a .ova file: $OVA" ;; esac
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 BASE=$(basename "$OVA"); BASE=${BASE%.*}
+# This name becomes a directory that is deleted and recreated: keep it plain.
+[[ $BASE =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] || die "unsupported OVA file name '$BASE.ova': use letters, digits, . _ + - only"
+
+# Names that come from inside the OVA (OVF hrefs, manifest entries) must be
+# plain file names: an OVA is untrusted input, and a path like ../../x would
+# point outside the extraction directory.
+plain_name() { [[ $1 =~ ^[A-Za-z0-9_+-][A-Za-z0-9._+-]*$ ]]; }
 REL_DIR="artifacts/ova/$BASE"
 OUT="$REPO_ROOT/$REL_DIR"
 
@@ -59,6 +66,7 @@ else
     line=${line%$'\r'}
     [[ $line =~ $re ]] || continue
     algo=${BASH_REMATCH[1]} file=${BASH_REMATCH[2]} want=${BASH_REMATCH[3]}
+    plain_name "$file" || die "the manifest names '$file', which is not a plain file name; refusing this OVA"
     [[ -f $OUT/$file ]] || die "the manifest lists $file but the OVA does not contain it"
     got=$(digest "$algo" "$OUT/$file")
     [[ $(lower "$got") == "$(lower "$want")" ]] || die "$algo mismatch for $file: the OVA is corrupt or was modified"
@@ -112,7 +120,8 @@ while IFS= read -r disk; do
   units=$(attr "$disk" capacityAllocationUnits)
   file_el=$(printf '%s\n' "$FLAT" | grep -E "^(ovf:)?File .*ovf:id=\"$ref\"" | head -n1)
   href=$(attr "$file_el" href)
-  [[ -n $href && -f $OUT/$href ]] || die "disk $ref points at '$href', which is not in the OVA"
+  plain_name "$href" || die "disk $ref points at '$href', which is not a plain file name; refusing this OVA"
+  [[ -f $OUT/$href ]] || die "disk $ref points at '$href', which is not in the OVA"
   [[ -z $(attr "$file_el" compression) ]] || die "$href is compressed inside the OVF; not supported"
   case $units in
     ""|byte) bytes=$cap ;;
