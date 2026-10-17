@@ -1,0 +1,28 @@
+# {{ ansible_managed }}
+# Source: config/lab.yml (gateway). Interfaces: eth0 = LAN, eth1.. = lab nets.
+domain-needed
+bogus-priv
+no-resolv
+server={{ lab.lan.dns }}
+local=/{{ lab.gateway.domain }}/
+domain={{ lab.gateway.domain }}
+expand-hosts
+dhcp-authoritative
+bind-dynamic
+
+# DNS for the home LAN (lab names), never DHCP there
+interface=eth0
+no-dhcp-interface=eth0
+{% for net in lab.gateway.nets %}
+
+# {{ net.vnet }}
+interface=eth{{ loop.index }}
+{% if net.dhcp | default([]) | length == 2 %}
+dhcp-range=set:{{ net.vnet }},{{ net.dhcp[0] }},{{ net.dhcp[1] }},12h
+dhcp-option=tag:{{ net.vnet }},option:router,{{ net.address.split('/')[0] }}
+dhcp-option=tag:{{ net.vnet }},option:dns-server,{{ net.address.split('/')[0] }}
+{% if lab.sdn.type == 'vxlan' %}
+dhcp-option=tag:{{ net.vnet }},option:mtu,{{ lab.sdn.vxlan_mtu }}
+{% endif %}
+{% endif %}
+{% endfor %}

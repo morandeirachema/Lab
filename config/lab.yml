@@ -6,6 +6,7 @@
 # Values marked "placeholder" must be replaced with your own network.
 
 lan:
+  bridge: vmbr0             # the node bridge on the home LAN
   cidr: 192.168.1.0/24      # placeholder
   gateway: 192.168.1.1      # placeholder
   dns: 192.168.1.1          # placeholder
@@ -42,6 +43,7 @@ gateway:
   hostname: labgw
   domain: lab.home.arpa       # guests register as <name>.lab.home.arpa
   snat_from_lan: false        # true for guests with a static IP and no default route
+  # mgmt_cidr: 192.168.1.0/24  # who may reach the lab nets (default: lan.cidr)
   # One interface per entry, eth1, eth2... in this order. The cyber vnet is
   # deliberately absent: the gateway never routes it.
   nets:

@@ -1,0 +1,24 @@
+---
+# Configure the lab gateway container that OpenTofu created
+# (terraform/gateway.tf): DHCP/DNS with dnsmasq, routing policy with nftables.
+#
+#   cd ansible && ansible-playbook playbooks/lab-gateway.yml
+- name: Lab gateway
+  hosts: lab_gateway
+  gather_facts: false
+  pre_tasks:
+    - name: Make sure Python is present for Ansible
+      ansible.builtin.raw: >-
+        test -e /usr/bin/python3 ||
+        (apt-get -q update && DEBIAN_FRONTEND=noninteractive apt-get -qy install python3)
+      changed_when: false
+
+    - name: Load config/lab.yml
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../config/lab.yml"
+        name: lab
+
+    - name: Gather facts
+      ansible.builtin.setup:
+  roles:
+    - role: lab_gateway

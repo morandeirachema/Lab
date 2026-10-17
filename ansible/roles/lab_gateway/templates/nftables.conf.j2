@@ -1,0 +1,60 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+# Source: config/lab.yml (gateway.nets). Interfaces: eth0 = LAN, eth1.. = lab nets.
+#
+#   LAN (MGMT_NET) -> lab nets          allowed
+#   lab net -> internet                 only nets with internet: true, never private ranges
+#   lab net -> LAN, lab net -> lab net  dropped
+flush ruleset
+
+define LAN_IF   = "eth0"
+define MGMT_NET = {{ lab.gateway.mgmt_cidr | default(lab.lan.cidr) }}
+define PRIVATE  = { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16 }
+{% set lab_ifs = [] %}
+{% for net in lab.gateway.nets %}{% set _ = lab_ifs.append('"eth' ~ loop.index ~ '"') %}{% endfor %}
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+    iif "lo" accept
+    ct state established,related accept
+    ct state invalid drop
+    meta l4proto { icmp, ipv6-icmp } accept
+    iifname $LAN_IF ip saddr $MGMT_NET tcp dport 22 accept
+    iifname $LAN_IF ip saddr $MGMT_NET meta l4proto { tcp, udp } th dport 53 accept
+{% if lab_ifs %}
+    iifname { {{ lab_ifs | join(', ') }} } udp dport 67 accept
+    iifname { {{ lab_ifs | join(', ') }} } meta l4proto { tcp, udp } th dport 53 accept
+{% endif %}
+  }
+
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+    tcp flags syn tcp option maxseg size set rt mtu
+    ct state established,related accept
+    ct state invalid drop
+{% for net in lab.gateway.nets %}
+    # {{ net.vnet }}: eth{{ loop.index }}, {{ net.address }}, internet {{ 'yes' if net.internet else 'no' }}
+    iifname $LAN_IF oifname "eth{{ loop.index }}" ip saddr $MGMT_NET accept
+{% if net.internet %}
+    iifname "eth{{ loop.index }}" oifname $LAN_IF ip daddr != $PRIVATE accept
+{% endif %}
+{% endfor %}
+  }
+
+  chain output {
+    type filter hook output priority filter; policy accept;
+  }
+}
+
+table ip nat {
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+    oifname $LAN_IF masquerade
+{% if lab.gateway.snat_from_lan | default(false) %}
+{% for net in lab.gateway.nets %}
+    oifname "eth{{ loop.index }}" ip saddr $MGMT_NET masquerade
+{% endfor %}
+{% endif %}
+  }
+}

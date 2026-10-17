@@ -1,0 +1,42 @@
+---
+# Expects config/lab.yml loaded as `lab` (see playbooks/lab-gateway.yml).
+# Interfaces: eth0 = home LAN, eth1.. = lab.gateway.nets in order (terraform/gateway.tf).
+
+- name: Install nftables and dnsmasq
+  ansible.builtin.apt:
+    name: [nftables, dnsmasq]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Forward IPv4 between the LAN and the lab nets
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/90-labgw.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (lab_gateway)
+      net.ipv4.ip_forward = 1
+  notify: Reload sysctl
+
+- name: Routing policy (nftables)
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    mode: "0755"
+    validate: nft -c -f %s
+  notify: Restart nftables
+
+- name: DHCP and DNS for the lab nets (dnsmasq)
+  ansible.builtin.template:
+    src: dnsmasq-lab.conf.j2
+    dest: /etc/dnsmasq.d/lab.conf
+    mode: "0644"
+    validate: dnsmasq --test --conf-file=%s
+  notify: Restart dnsmasq
+
+- name: Start nftables and dnsmasq at boot
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [nftables, dnsmasq]
