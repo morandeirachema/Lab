@@ -14,7 +14,6 @@
 artifacts/
 
 # Local overrides and secrets
-config/*.local.env
 *.vault_pass
 .vault_pass*
 .env
