@@ -11,7 +11,7 @@ TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
 export PROXMOX_VE_INSECURE ?= true
 
 .DEFAULT_GOAL := help
-.PHONY: help check ping nodes iac init plan apply gateway obs remote unpack lab token
+.PHONY: help check ping nodes iac init plan apply gateway obs qdevice remote unpack lab token
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
@@ -49,6 +49,9 @@ gateway: ## Configure the lab gateway (dnsmasq, nftables) after `make apply`
 
 obs: ## Configure the observability VM (export GRAFANA_ADMIN_PASSWORD for its first run)
 	cd ansible && ansible-playbook playbooks/observability.yml
+
+qdevice: ## Two-node quorum: prepare the nodes and the qdevice host, then run pvecm qdevice setup
+	cd ansible && ansible-playbook playbooks/qdevice.yml
 
 remote: ## Optional: Tailscale on the nodes (export TS_AUTHKEY for the first join)
 	cd ansible && ansible-playbook playbooks/remote-access.yml

@@ -1,0 +1,45 @@
+---
+# The external vote for a two-node cluster. Per the Proxmox cluster docs, the
+# host needs the corosync-qnetd package, TCP 5403 reachable from the nodes, and
+# key-based root SSH from the cluster for `pvecm qdevice setup`.
+- name: Install corosync-qnetd
+  ansible.builtin.apt:
+    name: corosync-qnetd
+    state: present
+    update_cache: true
+
+- name: Run corosync-qnetd at boot
+  ansible.builtin.systemd_service:
+    name: corosync-qnetd
+    enabled: true
+    state: started
+
+- name: Find the cluster's root SSH public keys
+  ansible.builtin.find:
+    paths: /root/.ssh
+    patterns: "id_*.pub"
+  delegate_to: "{{ groups['proxmox'][0] }}"
+  register: qnetd_cluster_keys
+
+- name: Read them
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ qnetd_cluster_keys.files }}"
+  delegate_to: "{{ groups['proxmox'][0] }}"
+  register: qnetd_cluster_key_contents
+
+- name: Root's SSH directory
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    mode: "0700"
+
+- name: Let the cluster's root log in for `pvecm qdevice setup`
+  ansible.builtin.lineinfile:
+    path: /root/.ssh/authorized_keys
+    line: "{{ item.content | b64decode | trim }}"
+    create: true
+    mode: "0600"
+  loop: "{{ qnetd_cluster_key_contents.results }}"
+  loop_control:
+    label: "{{ item.source }}"

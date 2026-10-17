@@ -153,12 +153,13 @@ Where to run it:
   the DS224+, but neither Synology nor Proxmox documents `corosync-qnetd` in a container
   there.
 
-The Proxmox steps are the same wherever it runs:
+The steps are the same wherever it runs. Put the host in a `qdevice` group in
+`ansible/inventory/hosts.yml`, then:
 
 ```sh
-apt install corosync-qnetd               # on the QDevice host
-apt install corosync-qdevice             # on every Proxmox node
-pvecm qdevice setup <QDEVICE-IP>         # on one node; needs root SSH to the QDevice host
+make qdevice                             # corosync-qdevice on every node; corosync-qnetd and
+                                         # root SSH from the cluster on the QDevice host
+ssh pve1 pvecm qdevice setup <QDEVICE-IP>
 ```
 
 When pve3 joins, remove it with `pvecm qdevice remove`: Proxmox discourages QDevices for odd

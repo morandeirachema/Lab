@@ -1,0 +1,23 @@
+---
+# The third quorum vote while the cluster has two nodes (docs/04-cluster.md).
+# Prepares both sides; the pairing itself is one interactive command:
+#
+#   cd ansible && ansible-playbook playbooks/qdevice.yml
+#   ssh pve1 pvecm qdevice setup <qdevice address>
+#
+# Needs a host in the qdevice group of the inventory (a small Debian VM on the
+# Mac mini). When pve3 joins, run `pvecm qdevice remove`: Proxmox discourages a
+# QDevice with an odd number of nodes.
+- name: QDevice support on every Proxmox node
+  hosts: proxmox
+  tasks:
+    - name: Install corosync-qdevice
+      ansible.builtin.apt:
+        name: corosync-qdevice
+        state: present
+        update_cache: true
+
+- name: The external QDevice host
+  hosts: qdevice
+  roles:
+    - role: qnetd

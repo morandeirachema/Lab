@@ -25,14 +25,15 @@ start guests. Two documented ways out:
   machine outside the cluster: a Raspberry Pi, a NAS, a VM elsewhere. The Proxmox docs
   "support QDevices for clusters with an even number of nodes and recommend it for 2 node
   clusters."
+  The Mac mini can host it in a small Debian VM ([09](09-nas-and-control-node.md#the-third-quorum-vote-qdevice)).
+  Add that VM to a `qdevice` group in `ansible/inventory/hosts.yml`, then:
   ```sh
-  # on the external machine
-  apt install corosync-qnetd
-  # on every Proxmox node
-  apt install corosync-qdevice
-  # on one node
-  pvecm qdevice setup <QDEVICE-IP>
+  make qdevice                              # corosync-qdevice on every node; corosync-qnetd on the
+                                            # qdevice host, plus root SSH from the cluster
+  ssh pve1 pvecm qdevice setup <QDEVICE-IP> # the one-time pairing
   ```
+  These are the documented steps: `corosync-qnetd` on the external host, `corosync-qdevice`
+  on all nodes, key-based root SSH, then `pvecm qdevice setup`.
 - **Emergency only:** when you are certain the other node is down (not just
   unreachable), run on the survivor:
   ```sh
