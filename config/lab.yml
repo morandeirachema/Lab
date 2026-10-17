@@ -15,6 +15,22 @@ storage:
   vm: local-zfs             # VM disks and container root filesystems (local-lvm on ext4 installs)
   files: local              # templates and disk images to import ("import" content enabled by Ansible)
 
+# The Synology DS224+ as NFS storage for backups, ISOs, templates and disk
+# images (terraform/nas.tf). Create the share and its NFS rule on the NAS
+# first (docs/09-nas-and-control-node.md), then set enabled: true.
+# Its address is the ds224 host in ansible/inventory/hosts.yml.
+nas:
+  enabled: false
+  storage_id: nas
+  export: /volume1/proxmox     # verify: the NFS path DSM shows for the shared folder
+  options: vers=4.1            # verify: an NFS version your DSM has enabled
+  content: [backup, iso, vztmpl, import]
+  backup:
+    pools: [pam]               # one weekly job per pool
+    schedule: "sat 03:00"
+    keep_last: 3
+    keep_weekly: 4
+
 # Lab segments shared by every node.
 # type vlan:  tagged on vmbr0; the switch must pass 802.1Q tags.
 # type vxlan: tunnelled between node IPs; any switch, but guest MTU 1450.
