@@ -115,6 +115,9 @@ make lab LAB=pam CMD=start
 | `pve2` | Beelink Mini S12 Pro | Intel N100 · 4C/4T | 16 GB (the maximum) | 1 × 1 GbE | ✅ in service |
 | `pve3` | Beelink Mini S13 Pro | Intel N150 · 4C/4T | verify on arrival | verify on arrival | 🔜 later |
 
+Around the cluster: a **Synology DS224+** (NFS storage, backups, the QDevice vote) and a
+**Mac mini M4 (16 GB)** as the always-on control node ([docs/09](docs/09-nas-and-control-node.md)).
+
 Beelink and Intel both state 16 GB as the maximum, so the lab is planned within that.
 Sources and BIOS settings are in [docs/01](docs/01-hardware.md).
 
@@ -140,6 +143,7 @@ Details are in [docs/06](docs/06-pam-lab.md) and [docs/08](docs/08-roadmap.md).
 | 06 | [PAM lab](docs/06-pam-lab.md) | PAMv1 from build to reset |
 | 07 | [Remote management](docs/07-remote-management.md) | LAN, Tailscale, TLS trust, Wake-on-LAN, hardening |
 | 08 | [Roadmap](docs/08-roadmap.md) | phases, mapped to the certification plan |
+| 09 | [NAS and control node](docs/09-nas-and-control-node.md) | DS224+ NFS storage, backups and quorum vote; the Mac mini as control node |
 
 ## 📁 Repository map
 
