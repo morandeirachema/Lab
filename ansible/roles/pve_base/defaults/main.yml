@@ -2,6 +2,8 @@
 # Proxmox VE major version and Debian suite this role is written for.
 pve_base_major: 9
 pve_base_suite: trixie
+# Ceph release repo: the Package_Repositories wiki marks ceph-tentacle as recommended (Oct 2026).
+pve_base_ceph_release: ceph-tentacle
 
 # apt full-upgrade on every run; reboot afterwards only if asked to.
 pve_base_full_upgrade: true

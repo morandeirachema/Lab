@@ -17,6 +17,14 @@ resource "terraform_data" "config_checks" {
       error_message = "config/lab.yml: sdn.type must be vlan or vxlan."
     }
     precondition {
+      # PVE API: zone and vnet IDs are 2-8 characters, [a-zA-Z][a-zA-Z0-9]*[a-zA-Z0-9]
+      condition = alltrue([
+        for id in concat([local.lab.sdn.zone], keys(local.lab.sdn.vnets)) :
+        can(regex("^[a-zA-Z][a-zA-Z0-9]*[a-zA-Z0-9]$", id)) && length(id) <= 8
+      ])
+      error_message = "config/lab.yml: the SDN zone and vnet names must be 2-8 letters or digits, starting with a letter (no - or _)."
+    }
+    precondition {
       condition     = contains(keys(local.nodes), local.lab.gateway.node)
       error_message = "config/lab.yml: gateway.node is not a host in ansible/inventory/hosts.yml."
     }
