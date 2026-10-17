@@ -29,6 +29,10 @@ resource "terraform_data" "config_checks" {
       error_message = "config/lab.yml: gateway.node is not a host in ansible/inventory/hosts.yml."
     }
     precondition {
+      condition     = alltrue([for name in keys(local.lab.labs) : contains(keys(local.lab.pools), name)])
+      error_message = "config/lab.yml: every lab under labs needs a pool of the same name under pools (its guests go in it, and lab-ctl finds them by that name)."
+    }
+    precondition {
       condition     = alltrue([for n in local.lab.gateway.nets : contains(keys(local.lab.sdn.vnets), n.vnet)])
       error_message = "config/lab.yml: every gateway.nets[].vnet must be one of sdn.vnets."
     }

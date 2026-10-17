@@ -26,7 +26,7 @@ nas:
   options: vers=4.1            # DSM: File Services > NFS > Maximum NFS protocol = NFSv4.1
   content: [backup, iso, vztmpl]  # what pve-docs lists for NFS (import is not listed)
   backup:
-    pools: [pam]               # one weekly job per pool
+    pools: [wallix]            # one weekly job per pool
     schedule: "sat 03:00"
     keep_last: 3
     keep_weekly: 4
@@ -47,7 +47,7 @@ sdn:
 # Resource pools: one per lab plus infra, so permissions and views follow labs.
 pools:
   infra: Shared lab infrastructure
-  pam: PAM lab
+  wallix: WALLIX PAM lab (WCE-P)
   devops: DevOps lab
   cyber: Cyber range
 
@@ -68,20 +68,24 @@ gateway:
       dhcp: [10.10.10.100, 10.10.10.199]
       internet: false
 
-# Guests per lab. VMID order is boot order for scripts/pve/lab-ctl.sh.
-# Disk images come from scripts/ova-unpack.sh, which extracts and verifies an
-# OVA on this machine and prints the values to put here.
+# Guests per lab. VMID order is boot order for scripts/lab-ctl.sh.
+# Each entry comes from scripts/ova-unpack.sh (make unpack OVA=...), which
+# verifies an OVA and prints the values read from its OVF: vCPU, memory,
+# firmware, MAC and each disk's real capacity. Paste it here, then set vmid
+# (WALLIX lab range: 1000-1999), node and vnet.
 labs:
-  pam:
-    vms:
-      - vmid: 1001
-        name: pamv1
-        node: pve1
-        memory: 2048            # what the PAMv1 OVF declares
-        cores: 2
-        os: l26
-        firmware: bios
-        vnet: pam
-        disks:
-          - image: artifacts/ova/pamv1-appliance-13.6.0/pamv1-appliance-disk1.vmdk
-            size_gb: 20         # replace with the capacity ova-unpack.sh reports
+  # The first lab: WALLIX, on the isolated pam segment. Empty until the
+  # WALLIX OVAs are unpacked; then one entry per appliance or target, e.g.
+  #   - vmid: 1001
+  #     name: <from ova-unpack>
+  #     node: pve1
+  #     memory: <from ova-unpack>
+  #     cores: <from ova-unpack>
+  #     os: l26
+  #     firmware: <from ova-unpack>
+  #     vnet: pam
+  #     disks:
+  #       - image: artifacts/ova/<ova name>/<disk>.vmdk
+  #         size_gb: <from ova-unpack>
+  wallix:
+    vms: []
