@@ -74,7 +74,7 @@ After `make apply` (which creates the VM and the metric server) and `make gatewa
 
 ```sh
 make nodes                                  # the nodes' routes to 10.10.40.0/24
-export GRAFANA_ADMIN_PASSWORD='…'           # first run only: 12+ chars, letters, digits, _ . : @ + = ! ? , ~ # -
+export GRAFANA_ADMIN_PASSWORD='…'           # first run only: 12+ characters, no spaces
 make obs
 ```
 
@@ -82,7 +82,10 @@ Open **Grafana at `http://obs.lab.home.arpa:3000`** (or `http://10.10.40.10:3000
 The gateway publishes the `obs` name, and Pi-hole's forwarding entry or the Mac's resolver file
 from [02](02-network.md#reaching-the-lab-from-the-mac) sends the query there. That needs the route to
 `10.10.40.0/24` via `labgw`, as in [02-network.md](02-network.md#reaching-the-lab-from-the-mac).
-Log in as `admin` with that password. Grafana applies it once, at first start. Prometheus
+Log in as `admin` with that password. It's stored in `/etc/grafana/admin_password`
+(root:grafana, 0640), and Grafana reads it through its `$__file{}` provider, not from an
+environment variable: systemd warns that unit environment variables are exposed over D-Bus.
+Grafana applies it once, at first start. Prometheus
 and Loki are already set up as data sources.
 
 ## Send WALLIX's logs to it

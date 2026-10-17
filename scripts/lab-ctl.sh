@@ -59,8 +59,10 @@ fi
 api() {  # api GET|POST <path> [curl --data... args]
   local method=$1 path=$2 out
   shift 2
+  # The token goes in through curl's -H @file form, so it never shows up in
+  # the process list the way a -H argument would.
   out=$(curl -sS --fail-with-body ${TLS[@]+"${TLS[@]}"} -X "$method" \
-          -H "Authorization: PVEAPIToken=$PROXMOX_VE_API_TOKEN" \
+          -H @<(printf 'Authorization: PVEAPIToken=%s\n' "$PROXMOX_VE_API_TOKEN") \
           "${PROXMOX_VE_ENDPOINT%/}/api2/json$path" "$@") \
     || die "$method $path: $(jq -r '.message // .errors // .' <<<"$out" 2>/dev/null || printf '%s' "$out")"
   jq -c '.data' <<<"$out" 2>/dev/null || die "$method $path: the API returned something that is not JSON"

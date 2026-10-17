@@ -112,7 +112,10 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   `/var/lib/loki`. The packaged Prometheus (2.53.3) has no OTLP receiver, so Alloy remote-writes.
   Alloy's unit has no capabilities, so binding 514 needs a drop-in.
 - **Jinja string literals in Ansible don't process backslash escapes** (checked on ansible-core
-  2.15 and 2.21), so avoid escaping logic in templates (the Grafana password is charset-restricted instead).
+  2.15 and 2.21), so avoid escaping logic in templates.
+- **Secrets never ride in argv or unit environment:** lab-ctl sends the token with curl's
+  `-H @file` form, and Grafana reads its password from a root:grafana 0640 file via `$__file{}`.
+  systemd.exec(5) says unit `Environment=` is exposed over D-Bus.
 - **macOS `sed`** has no `\|` alternation, and `ls` may be aliased (use `command ls`).
 - Hardware ceiling: N100/N150 and the S12 Pro are **16 GB max** (Intel ARK, Beelink
   staff). Plan guests within it. The S13 Pro has no official spec page.

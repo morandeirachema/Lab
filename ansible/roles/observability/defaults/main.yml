@@ -18,5 +18,6 @@ observability_syslog_format: rfc5424
 observability_loki_dir: /var/lib/loki
 
 # Grafana's admin password, read from the environment of the machine running
-# Ansible and never stored in the repo. Grafana applies it once, on first run.
+# Ansible and never stored in the repo. It goes to /etc/grafana/admin_password
+# (root:grafana 0640); Grafana applies it once, on first run.
 observability_grafana_admin_password: "{{ lookup('ansible.builtin.env', 'GRAFANA_ADMIN_PASSWORD') }}"

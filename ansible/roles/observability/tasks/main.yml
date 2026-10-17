@@ -68,12 +68,11 @@
       ARGS="{{ observability_prometheus_args | join(' ') }}"
   notify: Restart prometheus
 
-- name: Directories for the systemd drop-ins
+- name: Directory for Alloy's systemd drop-in
   ansible.builtin.file:
-    path: "/etc/systemd/system/{{ item }}.service.d"
+    path: /etc/systemd/system/alloy.service.d
     state: directory
     mode: "0755"
-  loop: [alloy, grafana-server]
 
 # --- Alloy: syslog -> Loki, OTLP metrics -> Prometheus ---------------------------
 - name: Alloy configuration
@@ -103,32 +102,47 @@
     mode: "0644"
   notify: Restart grafana
 
-- name: Look for an existing admin password drop-in
+# The admin password lives in a root-owned file that Grafana reads through its
+# documented file provider ($__file{}). A systemd Environment= line would expose
+# it: systemd.exec(5) warns that unit environment variables are "exposed to
+# unprivileged clients via D-Bus IPC" and are "not suitable for passing secrets".
+- name: Look for Grafana's admin password file
   ansible.builtin.stat:
-    path: /etc/systemd/system/grafana-server.service.d/10-admin.conf
-  register: observability_grafana_dropin
+    path: /etc/grafana/admin_password
+  register: observability_grafana_pwfile
 
-# The password goes into a systemd Environment= line, where % " \ and $ need
-# escaping; allowing only characters that need none keeps it exact.
-- name: Require a usable admin password for Grafana's first run
+- name: Require an admin password for Grafana's first run
   ansible.builtin.assert:
     that: >-
-      observability_grafana_dropin.stat.exists and observability_grafana_admin_password | length == 0
-      or observability_grafana_admin_password is match('^[A-Za-z0-9_.:@+=!?,~#-]{12,}$')
+      observability_grafana_pwfile.stat.exists and observability_grafana_admin_password | length == 0
+      or observability_grafana_admin_password is match('^\S{12,}$')
     fail_msg: >-
-      Before the first run, export GRAFANA_ADMIN_PASSWORD: 12 or more characters, letters,
-      digits and _ . : @ + = ! ? , ~ # - only, so Grafana never starts with admin/admin.
+      Before the first run, export GRAFANA_ADMIN_PASSWORD (12 or more characters, no
+      spaces), so Grafana never starts with admin/admin.
 
-- name: Grafana admin password (GF_SECURITY_ADMIN_PASSWORD, root-only drop-in)
+- name: Grafana admin password file (root:grafana 0640)
   ansible.builtin.copy:
-    dest: /etc/systemd/system/grafana-server.service.d/10-admin.conf
-    mode: "0600"
-    content: |
-      # Managed by Ansible (observability). Grafana applies admin_password once, on first run.
-      [Service]
-      Environment="GF_SECURITY_ADMIN_PASSWORD={{ observability_grafana_admin_password }}"
-  when: observability_grafana_admin_password | length >= 12
+    dest: /etc/grafana/admin_password
+    content: "{{ observability_grafana_admin_password }}"
+    owner: root
+    group: grafana
+    mode: "0640"
+  when: observability_grafana_admin_password | length > 0
   no_log: true
+  notify: Restart grafana
+
+- name: Read admin_password from that file ($__file provider; applied on first run)
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    regexp: '^;?admin_password\s*='
+    line: "admin_password = $__file{/etc/grafana/admin_password}"
+    insertafter: '^\[security\]'
+  notify: Restart grafana
+
+- name: Remove the earlier Environment= drop-in, if a previous run left one
+  ansible.builtin.file:
+    path: /etc/systemd/system/grafana-server.service.d/10-admin.conf
+    state: absent
   notify:
     - Reload systemd for observability
     - Restart grafana

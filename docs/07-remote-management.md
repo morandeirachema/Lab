@@ -35,9 +35,11 @@ internet.
    ```
    Every node already routes the lab nets through `labgw`: `pve_base` derives the routes
    from `gateway.nets`.
-3. Generate an auth key in the Tailscale admin console, then:
+3. Generate a **one-off** (not reusable) auth key in the Tailscale admin console. That's
+   Tailscale's own advice in [Securely handle an auth key](https://tailscale.com/docs/features/access-control/auth-keys/how-to/secure-auth-keys).
+   Load it without it landing in your shell history, then:
    ```sh
-   export TS_AUTHKEY=tskey-...
+   export TS_AUTHKEY=$(cat)       # paste the key, then Ctrl-D
    make remote
    ```
 4. **Approve the routes** on the admin console's *Machines* page, in that node's
