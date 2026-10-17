@@ -8,6 +8,13 @@ Three small nodes in the end; two today.
 | `pve2` | Beelink Mini S12 Pro | Intel N100, 4C/4T | same | same | same | in service |
 | `pve3` | Beelink Mini S13 Pro | Intel N150, 4C/4T | verify on arrival | verify on arrival | verify on arrival | future |
 
+### Around the cluster
+
+| Machine | Role | Specs |
+|---|---|---|
+| Synology DS224+ (`192.168.1.219`) | NFS storage, backups ([09](09-nas-and-control-node.md)) | Intel Celeron J4125 4C/4T; 2 GB RAM, 6 GB max (one slot, Synology modules only); 2 bays; 2 × 1 GbE; no M.2. From the [Product Specifications](https://global.synologydownload.com/download/Document/Hardware/ProductSpec/DiskStation/24-year/DS224%2B/enu/Product_Spec_DS224%2B_enu.pdf), Aug 2026 |
+| Mac mini (M4, 16 GB) | Control node, QDevice host ([09](09-nas-and-control-node.md)) | Apple silicon (ARM), so not a cluster node |
+
 ## What the sources say
 
 **Beelink Mini S12 Pro.** Beelink's product page is offline, so this comes from the
