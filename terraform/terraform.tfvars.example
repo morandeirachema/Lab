@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (git-ignored) and adjust.
+
+# proxmox_endpoint = "https://192.168.1.11:8006/"
+# proxmox_insecure = false
+
+ssh_public_keys = [
+  # "ssh-ed25519 AAAA... you@mac",
+]
