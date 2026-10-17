@@ -1,0 +1,22 @@
+# PAM lab: one row per guest, whitespace-separated, "-" = default.
+#
+#   vmid    cluster-wide ID (PAM lab range: 1000-1999)
+#   name    Proxmox VM name (letters, digits, dot, hyphen)
+#   node    Proxmox node that imports and runs it
+#   ova     file in LAB_OVA_DIR on that node (or an absolute path);
+#           "-" = not an OVA, the row is only managed by lab-ctl.sh
+#   bridge  SDN vnet or bridge for net0
+#   memory  MiB          (- = what the OVF says)
+#   cores   vCPU         (- = what the OVF says)
+#   ostype  l26 | win10 | win11 | other   (Proxmox ostype)
+#   flags   comma list: efi bios tpm keepmac nosnap sata ide scsi e1000 e1000e virtio vmxnet3
+#
+# Order matters: lab-ctl.sh starts guests top to bottom and stops them bottom to top.
+#
+# vmid  name     node  ova                          bridge  memory  cores  ostype  flags
+1001    pamv1    pve1  pamv1-appliance-13.6.0.ova   pam     2048    2      l26     -
+
+# More appliances go below. These are templates, not real rows: uncomment and
+# fill in only for OVAs you actually have.
+# 1010  pam-dc01   pve2  <your-dc>.ova      pam  2048  2  win10  -
+# 1020  pam-target pve2  <your-target>.ova  pam  1024  1  l26    keepmac
