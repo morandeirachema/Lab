@@ -118,7 +118,9 @@
       {%-     set o = ip.split('.') | map('int') | list -%}
       {%-     set n = o[0] * 16777216 + o[1] * 65536 + o[2] * 256 + o[3] -%}
       {%-     set base = n - (n % (2 ** (32 - (prefix | int)))) -%}
-      {%-     set _ = out.append({'net': (base // 16777216) ~ '.' ~ (base // 65536 % 256) ~ '.' ~ (base // 256 % 256) ~ '.' ~ (base % 256) ~ '/' ~ prefix, 'via': hostvars['labgw'].ansible_host}) -%}
+      {%-     set octets = [base // 16777216, base // 65536 % 256, base // 256 % 256, base % 256] -%}
+      {%-     set network = (octets | join('.')) ~ '/' ~ prefix -%}
+      {%-     set _ = out.append({'net': network, 'via': hostvars['labgw'].ansible_host}) -%}
       {%-   endfor -%}
       {%- endif -%}
       {{ out }}
