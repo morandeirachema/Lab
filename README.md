@@ -89,6 +89,7 @@ Then, for a fresh cluster ([full walkthrough](docs/05-iac-workflow.md)):
 ```sh
 make ping && make nodes        # baseline every node                (docs/03)
 #   form the cluster by hand:  pvecm create / pvecm add             (docs/04)
+make qdevice                   # third quorum vote while there are two nodes
 make iac                       # API user, role, token → ~/.config/lab/
 make unpack OVA=~/path/to/<wallix-appliance>.ova   # each OVA   (docs/06)
 make init && make plan         # read the plan

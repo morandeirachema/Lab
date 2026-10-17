@@ -24,7 +24,13 @@ against the provider's real schema, without touching the cluster.
 |---|---|
 | BIOS settings, Proxmox install | Nothing to run code on yet |
 | `pvecm create` / `pvecm add` | Interactive (root password, fingerprint), and done once |
+| `pvecm qdevice setup` | One-time pairing over root SSH; `make qdevice` prepares both sides |
 | Approving Tailscale routes | Done in the Tailscale admin console, by design |
+| NAS volume, `proxmox` share, NFS rules | DSM is configured in its own UI ([09](09-nas-and-control-node.md)); OpenTofu then adds the storage |
+| Pi-hole's `dns.revServers` entry | One setting in an existing container on the NAS ([09](09-nas-and-control-node.md#5-lab-names-through-pi-hole)) |
+| Mac mini as control node | `pmset`, Remote Login and tools, done once on that Mac ([09](09-nas-and-control-node.md)) |
+| Accepting SSH host keys | First `ssh` to each node, `labgw` and `obs`; Ansible checks host keys and won't accept them silently |
+| Routes from the Mac to the lab nets | A router or Mac setting ([02](02-network.md#reaching-the-lab-from-the-mac)); Ansible reaches `obs` (`10.10.40.10`) through it |
 | Getting the WALLIX OVAs | They come from WALLIX; `make unpack` takes them from there |
 | Power state and snapshots | Day-to-day operations, not desired state: `make lab` |
 
@@ -34,6 +40,7 @@ against the provider's real schema, without touching the cluster.
 make check                       # offline: everything validates
 make ping && make nodes          # 03-install.md: baseline every node
 # form the cluster by hand:      # 04-cluster.md
+make qdevice                     # two nodes only: then ssh pve1 pvecm qdevice setup <ip>
 make iac                         # API user, role, token → ~/.config/lab/proxmox-api-token
 make unpack OVA=~/path/to/<wallix-appliance>.ova      # each OVA: 06-wallix-lab.md
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars # add your SSH public key
