@@ -43,6 +43,7 @@ sdn:
     pam: {tag: 10, alias: PAM lab}
     devops: {tag: 20, alias: DevOps lab}
     cyber: {tag: 30, alias: Cyber range - isolated}
+    obs: {tag: 40, alias: Observability}
 
 # Resource pools: one per lab plus infra, so permissions and views follow labs.
 pools:
@@ -67,6 +68,27 @@ gateway:
       address: 10.10.10.1/24
       dhcp: [10.10.10.100, 10.10.10.199]
       internet: false
+    - vnet: obs                 # the observability VM; static address, no DHCP
+      address: 10.10.40.1/24
+      internet: true            # package installs for the stack
+
+# The observability VM: Grafana Alloy, Loki, Prometheus and Grafana
+# (terraform/observability.tf builds it; ansible/roles/observability configures it).
+# Debian 13 cloud image + cloud-init, always on, in the infra pool.
+observability:
+  enabled: true
+  vmid: 120
+  node: pve2
+  hostname: obs
+  memory: 4096                  # the ceiling for the whole stack
+  cores: 2
+  disk_gb: 32
+  vnet: obs
+  address: 10.10.40.10/24
+  # What the lab nets may send it through the gateway, and nothing else.
+  collector:
+    tcp: [514, 4318]            # syslog, OTLP over HTTP
+    udp: [514]                  # syslog
 
 # Guests per lab. VMID order is boot order for scripts/lab-ctl.sh.
 # Each entry comes from scripts/ova-unpack.sh (make unpack OVA=...), which

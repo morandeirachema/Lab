@@ -40,6 +40,21 @@ table inet filter {
     iifname "eth{{ loop.index }}" oifname $LAN_IF ip daddr != $PRIVATE accept
 {% endif %}
 {% endfor %}
+{% if lab.observability is defined and lab.observability.enabled | default(false) %}
+{%   set obs = lab.observability %}
+{%   set obs_ip = obs.address.split('/')[0] %}
+    # every other lab net -> the observability collector ({{ obs_ip }}): logs and metrics only
+{%   for net in lab.gateway.nets %}
+{%     if net.vnet != obs.vnet %}
+{%       if obs.collector.tcp | default([]) %}
+    iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} tcp dport { {{ obs.collector.tcp | join(', ') }} } accept
+{%       endif %}
+{%       if obs.collector.udp | default([]) %}
+    iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} udp dport { {{ obs.collector.udp | join(', ') }} } accept
+{%       endif %}
+{%     endif %}
+{%   endfor %}
+{% endif %}
   }
 
   chain output {
