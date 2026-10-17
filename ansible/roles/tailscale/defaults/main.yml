@@ -1,0 +1,20 @@
+---
+# Off until you opt in (group_vars/proxmox.yml: tailscale_enabled: true).
+tailscale_enabled: false
+
+# A Tailscale auth key, read from the environment of the machine running
+# Ansible; never stored in this repo. Only needed the first time a node joins.
+tailscale_auth_key: "{{ lookup('ansible.builtin.env', 'TS_AUTHKEY') }}"
+
+# Debian suite for https://pkgs.tailscale.com/stable/debian
+tailscale_suite: trixie
+
+# Keep the node's own /etc/resolv.conf: a hypervisor should not depend on
+# MagicDNS to resolve its own mirrors.
+tailscale_accept_dns: false
+
+# Subnets this node advertises to your tailnet (makes it a subnet router).
+# Set it on ONE node in host_vars, e.g. host_vars/pve1.yml:
+#   tailscale_advertise_routes: [192.168.1.0/24, 10.10.10.0/24]
+# Each route must then be approved in the Tailscale admin console.
+tailscale_advertise_routes: []

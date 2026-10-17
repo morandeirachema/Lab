@@ -1,0 +1,71 @@
+---
+# Install steps from https://pkgs.tailscale.com/stable/ (Debian trixie).
+- name: Add the Tailscale signing key
+  ansible.builtin.get_url:
+    url: "https://pkgs.tailscale.com/stable/debian/{{ tailscale_suite }}.noarmor.gpg"
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    mode: "0644"
+
+- name: Add the Tailscale repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/tailscale.list
+    mode: "0644"
+    content: >
+      deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg]
+      https://pkgs.tailscale.com/stable/debian {{ tailscale_suite }} main
+
+- name: Install Tailscale
+  ansible.builtin.apt:
+    name: tailscale
+    state: present
+    update_cache: true
+
+- name: Run tailscaled
+  ansible.builtin.systemd_service:
+    name: tailscaled
+    enabled: true
+    state: started
+
+# Subnet routers need forwarding for IPv4 and IPv6 (tailscale.com/kb/1019/subnets).
+- name: Enable IP forwarding for subnet routing
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-tailscale.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (tailscale)
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+  when: tailscale_advertise_routes | length > 0
+  notify: Reload sysctl for Tailscale
+
+- name: Read the node's Tailscale state
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status
+  changed_when: false
+  failed_when: false
+
+- name: Join the tailnet
+  when: >-
+    tailscale_status.rc != 0 or
+    (tailscale_status.stdout | from_json).BackendState != 'Running'
+  block:
+    - name: Require an auth key for the first join
+      ansible.builtin.assert:
+        that: tailscale_auth_key | length > 0
+        fail_msg: "{{ inventory_hostname }} is not on the tailnet yet: export TS_AUTHKEY=tskey-... and re-run."
+
+    - name: Log in with the auth key
+      ansible.builtin.command: >-
+        tailscale up
+        --auth-key={{ tailscale_auth_key }}
+        --hostname={{ inventory_hostname }}
+        --accept-dns={{ tailscale_accept_dns | string | lower }}
+      changed_when: true
+      no_log: true
+
+# "tailscale set" changes one preference without restating the others.
+- name: Advertise this node's subnet routes
+  ansible.builtin.command: >-
+    tailscale set --advertise-routes={{ tailscale_advertise_routes | join(',') }}
+  when: tailscale_advertise_routes | length > 0
+  changed_when: false

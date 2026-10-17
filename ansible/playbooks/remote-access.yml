@@ -1,0 +1,11 @@
+---
+# Optional: reach the nodes (and, through a subnet router, the LAN and the
+# lab nets) from anywhere with Tailscale, without opening ports on your router.
+#
+#   export TS_AUTHKEY=tskey-...      # only for the first join
+#   cd ansible && ansible-playbook playbooks/remote-access.yml
+- name: Tailscale on the Proxmox nodes
+  hosts: proxmox
+  roles:
+    - role: tailscale
+      when: tailscale_enabled | bool

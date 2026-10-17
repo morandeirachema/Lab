@@ -1,0 +1,4 @@
+---
+- name: Reload sysctl for Tailscale
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-tailscale.conf
+  changed_when: true
