@@ -3,6 +3,7 @@
 # SSH settings. One node at a time, so a reboot never takes the cluster down.
 #
 #   cd ansible && ansible-playbook playbooks/pve-postinstall.yml [--limit pve3]
+#   ... --tags routes     only the routes to the lab nets (make routes)
 - name: Proxmox VE post-install baseline
   hosts: proxmox
   serial: 1
@@ -11,5 +12,6 @@
       ansible.builtin.include_vars:
         file: "{{ playbook_dir }}/../../config/lab.yml"
         name: lab
+      tags: [always]
   roles:
     - role: pve_base

@@ -11,7 +11,7 @@ TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
 export PROXMOX_VE_INSECURE ?= true
 
 .DEFAULT_GOAL := help
-.PHONY: help check ping nodes iac init plan apply gateway obs qdevice remote unpack lab token
+.PHONY: help check ping nodes routes iac init plan apply gateway obs qdevice remote unpack lab token
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
@@ -28,6 +28,9 @@ ping: ## Check Ansible reaches every Proxmox node
 
 nodes: ## Baseline every node: repos, upgrades, tools, ZFS ARC, SSH (one node at a time)
 	cd ansible && ansible-playbook playbooks/pve-postinstall.yml
+
+routes: ## Only the nodes' routes to the lab nets (after changing gateway.nets; no upgrades)
+	cd ansible && ansible-playbook playbooks/pve-postinstall.yml --tags routes
 
 iac: ## Once per cluster: terraform@pve user, role and API token, import storage
 	cd ansible && ansible-playbook playbooks/pve-iac.yml

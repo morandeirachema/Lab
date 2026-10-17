@@ -96,7 +96,9 @@
     mode: "0644"
     content: |
       # Managed by Ansible (pve_base)
-      {{ pve_base_kernel_modules | join('\n') }}
+      {% for module in pve_base_kernel_modules %}
+      {{ module }}
+      {% endfor %}
 
 - name: Load them now
   ansible.builtin.command: modprobe {{ item }}
@@ -106,13 +108,25 @@
 # --- Routes to the lab nets ---------------------------------------------------
 # Network address of each gateway net, e.g. 10.10.10.1/24 -> 10.10.10.0/24
 # (plain arithmetic: Jinja has no bitwise operators).
+- name: The lab nets can be routed (config/lab.yml loaded, labgw in the inventory)
+  ansible.builtin.assert:
+    that:
+      - lab is defined
+      - "'labgw' in hostvars"
+    fail_msg: >-
+      pve_base_lab_routes is on, but config/lab.yml isn't loaded as `lab` or the inventory has
+      no labgw host. Run pve-postinstall.yml, or set pve_base_lab_routes: false.
+  when: pve_base_lab_routes | bool
+  tags: [routes]
+
 - name: Work out the routes to the lab nets
+  tags: [routes]
   ansible.builtin.set_fact:
     pve_base_routes: "{{ pve_base_static_routes + pve_base_lab_net_routes }}"
   vars:
     pve_base_lab_net_routes: >-
       {%- set out = [] -%}
-      {%- if pve_base_lab_routes | bool and lab is defined and 'labgw' in hostvars -%}
+      {%- if pve_base_lab_routes | bool -%}
       {%-   for net in lab.gateway.nets -%}
       {%-     set ip, prefix = net.address.split('/') -%}
       {%-     set o = ip.split('.') | map('int') | list -%}
@@ -134,6 +148,22 @@
   notify:
     - Reload systemd
     - Restart lab routes
+  tags: [routes]
+
+- name: Look for a lab routes unit
+  ansible.builtin.stat:
+    path: /etc/systemd/system/lab-routes.service
+  register: pve_base_routes_unit
+  when: pve_base_routes | length == 0
+  tags: [routes]
+
+- name: Stop it first, so its routes go (no routes configured any more)
+  ansible.builtin.systemd_service:
+    name: lab-routes.service
+    state: stopped
+    enabled: false
+  when: pve_base_routes | length == 0 and pve_base_routes_unit.stat.exists
+  tags: [routes]
 
 - name: Remove the lab routes unit when there are no routes
   ansible.builtin.file:
@@ -141,6 +171,7 @@
     state: absent
   when: pve_base_routes | length == 0
   notify: Reload systemd
+  tags: [routes]
 
 # --- SSH --------------------------------------------------------------------
 - name: Key-only SSH for root

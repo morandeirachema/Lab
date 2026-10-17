@@ -1,4 +1,7 @@
 # Managed by Ansible (pve_base)
+# Every route this unit adds carries routing protocol 240, a number nothing else
+# here uses. Flushing that protocol first removes exactly the routes an earlier
+# version of this unit added, so a net dropped from config/lab.yml disappears too.
 [Unit]
 Description=Static routes to the lab networks behind the lab gateway
 After=network-online.target
@@ -7,12 +10,11 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/ip route flush proto 240
 {% for route in pve_base_routes %}
-ExecStart=/usr/sbin/ip route replace {{ route.net }} via {{ route.via }}
+ExecStart=/usr/sbin/ip route replace {{ route.net }} via {{ route.via }} proto 240
 {% endfor %}
-{% for route in pve_base_routes %}
-ExecStop=-/usr/sbin/ip route del {{ route.net }} via {{ route.via }}
-{% endfor %}
+ExecStop=-/usr/sbin/ip route flush proto 240
 
 [Install]
 WantedBy=multi-user.target
