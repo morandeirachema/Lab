@@ -103,22 +103,41 @@
   loop: "{{ pve_base_kernel_modules }}"
   changed_when: false
 
-# --- Static routes (optional) -------------------------------------------------
+# --- Routes to the lab nets ---------------------------------------------------
+# Network address of each gateway net, e.g. 10.10.10.1/24 -> 10.10.10.0/24
+# (plain arithmetic: Jinja has no bitwise operators).
+- name: Work out the routes to the lab nets
+  ansible.builtin.set_fact:
+    pve_base_routes: "{{ pve_base_static_routes + pve_base_lab_net_routes }}"
+  vars:
+    pve_base_lab_net_routes: >-
+      {%- set out = [] -%}
+      {%- if pve_base_lab_routes | bool and lab is defined and 'labgw' in hostvars -%}
+      {%-   for net in lab.gateway.nets -%}
+      {%-     set ip, prefix = net.address.split('/') -%}
+      {%-     set o = ip.split('.') | map('int') | list -%}
+      {%-     set n = o[0] * 16777216 + o[1] * 65536 + o[2] * 256 + o[3] -%}
+      {%-     set base = n - (n % (2 ** (32 - (prefix | int)))) -%}
+      {%-     set _ = out.append({'net': (base // 16777216) ~ '.' ~ (base // 65536 % 256) ~ '.' ~ (base // 256 % 256) ~ '.' ~ (base % 256) ~ '/' ~ prefix, 'via': hostvars['labgw'].ansible_host}) -%}
+      {%-   endfor -%}
+      {%- endif -%}
+      {{ out }}
+
 - name: Install the lab routes unit
   ansible.builtin.template:
     src: lab-routes.service.j2
     dest: /etc/systemd/system/lab-routes.service
     mode: "0644"
-  when: pve_base_static_routes | length > 0
+  when: pve_base_routes | length > 0
   notify:
     - Reload systemd
     - Restart lab routes
 
-- name: Remove the lab routes unit when no routes are configured
+- name: Remove the lab routes unit when there are no routes
   ansible.builtin.file:
     path: /etc/systemd/system/lab-routes.service
     state: absent
-  when: pve_base_static_routes | length == 0
+  when: pve_base_routes | length == 0
   notify: Reload systemd
 
 # --- SSH --------------------------------------------------------------------

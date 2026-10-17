@@ -7,10 +7,10 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-{% for route in pve_base_static_routes %}
+{% for route in pve_base_routes %}
 ExecStart=/usr/sbin/ip route replace {{ route.net }} via {{ route.via }}
 {% endfor %}
-{% for route in pve_base_static_routes %}
+{% for route in pve_base_routes %}
 ExecStop=-/usr/sbin/ip route del {{ route.net }} via {{ route.via }}
 {% endfor %}
 

@@ -25,10 +25,14 @@ pve_base_swappiness: 10
 # Upper limit for the ZFS ARC in GiB on ZFS-installed nodes; 0 leaves it alone.
 pve_base_zfs_arc_max_gib: 2
 
-# Static routes on the node itself, e.g. to reach the lab nets behind the lab
-# gateway from a Tailscale subnet router:
+# Routes on the node to every lab net the gateway routes (config/lab.yml
+# gateway.nets, via the labgw address in the inventory). The nodes need them to
+# push metrics to the observability VM and to reach lab guests.
+pve_base_lab_routes: true
+
+# Extra static routes, e.g. for a Tailscale subnet router:
 #   pve_base_static_routes:
-#     - { net: 10.10.10.0/24, via: 192.168.1.20 }
+#     - { net: 172.16.0.0/24, via: 192.168.1.30 }
 pve_base_static_routes: []
 
 # Netfilter modules the lab gateway (an unprivileged container) needs for NAT

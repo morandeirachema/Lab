@@ -6,5 +6,10 @@
 - name: Proxmox VE post-install baseline
   hosts: proxmox
   serial: 1
+  pre_tasks:
+    - name: Load config/lab.yml (the lab nets to route)
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../config/lab.yml"
+        name: lab
   roles:
     - role: pve_base

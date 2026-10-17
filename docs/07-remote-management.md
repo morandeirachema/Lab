@@ -31,16 +31,14 @@ internet.
 2. Make **one** node a subnet router for the LAN and the lab nets. Create
    `ansible/inventory/host_vars/pve1.yml`:
    ```yaml
-   tailscale_advertise_routes: [192.168.1.0/24, 10.10.10.0/24]
-   # the lab nets sit behind labgw, so this node needs a route to them
-   pve_base_static_routes:
-     - {net: 10.10.10.0/24, via: 192.168.1.20}
+   tailscale_advertise_routes: [192.168.1.0/24, 10.10.10.0/24, 10.10.40.0/24]
    ```
+   Every node already routes the lab nets through `labgw`: `pve_base` derives the routes
+   from `gateway.nets`.
 3. Generate an auth key in the Tailscale admin console, then:
    ```sh
    export TS_AUTHKEY=tskey-...
    make remote
-   make nodes        # installs the lab-routes unit on pve1
    ```
 4. **Approve the routes** on the admin console's *Machines* page, in that node's
    subnet settings. An advertised route is not used until it is approved, unless you
