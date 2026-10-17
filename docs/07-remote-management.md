@@ -1,0 +1,108 @@
+# 7. Managing the nodes remotely
+
+Four layers, from everyday use down to "the node is off".
+
+## 1. On the home LAN
+
+| Interface | What for |
+|---|---|
+| Web UI: `https://<node>:8006` | Consoles (e.g. reading PAMv1's admin key), a quick look at state |
+| SSH with keys (`ssh pve1`, see [03-install.md](03-install.md#first-contact-from-the-mac)) | Ansible, one-off commands |
+| API token (`terraform@pve!provider`) | OpenTofu (`make plan/apply`) and `make lab`, without logging in anywhere |
+
+`make lab` is the remote control for labs. It talks to the Proxmox API from your Mac,
+so no repo copy or SSH session on a node is involved:
+
+```sh
+make lab LAB=pam CMD=status
+make lab LAB=pam CMD=start
+make lab LAB=pam CMD=snapshot NAME=before-exercise
+```
+
+## 2. Away from home: Tailscale
+
+Tailscale needs no open ports on the router. Never port-forward 8006 or 22 to the
+internet.
+
+1. Enable it in `ansible/inventory/group_vars/proxmox.yml`:
+   ```yaml
+   tailscale_enabled: true
+   ```
+2. Make **one** node a subnet router for the LAN and the lab nets. Create
+   `ansible/inventory/host_vars/pve1.yml`:
+   ```yaml
+   tailscale_advertise_routes: [192.168.1.0/24, 10.10.10.0/24]
+   # the lab nets sit behind labgw, so this node needs a route to them
+   pve_base_static_routes:
+     - {net: 10.10.10.0/24, via: 192.168.1.20}
+   ```
+3. Generate an auth key in the Tailscale admin console, then:
+   ```sh
+   export TS_AUTHKEY=tskey-...
+   make remote
+   make nodes        # installs the lab-routes unit on pve1
+   ```
+4. **Approve the routes** on the admin console's *Machines* page, in that node's
+   subnet settings. An advertised route is not used until it is approved, unless you
+   set up autoApprovers.
+
+Each node also gets its own tailnet address, so you can reach the web UI or SSH on any
+node directly. `tailscale_accept_dns: false` keeps each node on its own DNS.
+
+## 3. Trusting the cluster's certificate
+
+Each cluster creates its own certificate authority. The Proxmox docs say to "copy
+/etc/pve/pve-root-ca.pem from any cluster node out of band … and import it into the
+operating system or browser trust store", because there is no download endpoint.
+
+```sh
+mkdir -p ~/.config/lab
+scp pve1:/etc/pve/pve-root-ca.pem ~/.config/lab/pve-root-ca.pem
+# browsers and other Keychain users on the Mac:
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/.config/lab/pve-root-ca.pem
+```
+
+Before turning verification on, check which names the node certificate covers. The
+endpoints here use IP addresses:
+
+```sh
+openssl s_client -connect 192.168.1.11:8006 </dev/null 2>/dev/null | openssl x509 -noout -ext subjectAltName
+```
+
+If the address is listed:
+
+- `make lab`: `export PROXMOX_VE_CACERT=~/.config/lab/pve-root-ca.pem`. This takes
+  precedence over the Makefile's `PROXMOX_VE_INSECURE=true`.
+- OpenTofu: set `proxmox_insecure = false` in `terraform/terraform.tfvars`. That relies on
+  the CA being in the macOS trust store; if verification fails, keep `true` for now.
+
+If only names are listed, point the endpoints at a listed name
+(`proxmox_endpoint` / `PROXMOX_VE_ENDPOINT`).
+
+## 4. When a node is off
+
+These mini PCs have no IPMI. The BIOS settings in
+[01-hardware.md](01-hardware.md#bios-settings-s12-pro) stand in for it:
+
+- **After a power cut**, *State After G3 = S0* powers the node back on by itself.
+- **Wake-on-LAN** is enabled in the BIOS by default. Proxmox can send the packet from
+  another node:
+  ```sh
+  ssh pve2 pvenode config set -wakeonlan <pve2's NIC MAC>   # once, on the node to be woken
+  ssh pve1 pvenode wakeonlan pve2                           # later, from a running node
+  ```
+  `pvenode wakeonlan` broadcasts the magic packet on UDP port 9. From the Mac on the same
+  LAN, `brew install wakeonlan`, then `wakeonlan <MAC>`, does the same. Whether the NIC
+  wakes from a *Linux* shutdown can also depend on the driver's setting; check with
+  `ethtool <nic> | grep Wake-on` on the node (`g` = magic packet).
+
+## Hardening checklist
+
+- [ ] Key-only root SSH: `pve_base_ssh_disable_passwords: true`, then `make nodes`.
+      Do this once key login works.
+- [ ] Two-factor login for the web UI. Proxmox supports TOTP: *Datacenter → Permissions
+      → Two Factor*.
+- [ ] Trust the cluster CA and turn TLS verification on (section 3).
+- [ ] Trim the `Terraform` role. The provider docs call their list "likely too
+      permissive".
+- [ ] No port forwards to the nodes; remote access goes only through Tailscale.
