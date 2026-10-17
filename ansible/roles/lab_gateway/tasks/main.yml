@@ -40,3 +40,8 @@
     enabled: true
     state: started
   loop: [nftables, dnsmasq]
+
+# Load the new rules and DNS config now, not at the end of the play: if a later
+# role failed, its handlers would be dropped and a re-run wouldn't reload them.
+- name: Apply the gateway's configuration before anything else runs
+  ansible.builtin.meta: flush_handlers

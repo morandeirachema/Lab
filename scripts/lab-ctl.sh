@@ -37,6 +37,9 @@ case $CMD in
   *) usage ;;
 esac
 for c in curl jq; do command -v "$c" >/dev/null || die "missing command: $c"; done
+for v in LAB_START_DELAY LAB_TASK_TIMEOUT; do
+  [[ -z ${!v:-} || ${!v} =~ ^[0-9]+$ ]] || die "$v must be a whole number of seconds, not '${!v}'"
+done
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 if [[ -z ${PROXMOX_VE_ENDPOINT:-} ]]; then
@@ -61,7 +64,8 @@ api() {  # api GET|POST <path> [curl --data... args]
   shift 2
   # The token goes in through curl's -H @file form, so it never shows up in
   # the process list the way a -H argument would.
-  out=$(curl -sS --fail-with-body ${TLS[@]+"${TLS[@]}"} -X "$method" \
+  # Bounded: a stalled connection or response can't hang the run.
+  out=$(curl -sS --fail-with-body --connect-timeout 10 --max-time 60 ${TLS[@]+"${TLS[@]}"} -X "$method" \
           -H @<(printf 'Authorization: PVEAPIToken=%s\n' "$PROXMOX_VE_API_TOKEN") \
           "${PROXMOX_VE_ENDPOINT%/}/api2/json$path" "$@") \
     || die "$method $path: $(jq -r '.message // .errors // .' <<<"$out" 2>/dev/null || printf '%s' "$out")"
@@ -71,7 +75,7 @@ api() {  # api GET|POST <path> [curl --data... args]
 # POSTs that start a task return its UPID; wait for it (at most
 # LAB_TASK_TIMEOUT seconds, default 600) and report failure.
 wait_task() {
-  local node=$1 upid=$2 st status exitstatus waited=0
+  local node=$1 upid=$2 st status exitstatus started=$SECONDS
   local limit=${LAB_TASK_TIMEOUT:-600}
   [[ $upid == UPID:* ]] || return 0
   upid=$(jq -rn --arg u "$upid" '$u | @uri') || return 1
@@ -79,12 +83,11 @@ wait_task() {
     st=$(api GET "/nodes/$node/tasks/$upid/status") || return 1
     status=$(jq -r '.status // empty' <<<"$st") || return 1
     [[ $status == stopped ]] && break
-    if (( waited >= limit )); then
+    if (( SECONDS - started >= limit )); then
       warn "task still '${status:-unknown}' after ${limit}s; giving up waiting (it may still finish)"
       return 1
     fi
     sleep 2
-    waited=$((waited + 2))
   done
   exitstatus=$(jq -r '.exitstatus // empty' <<<"$st") || return 1
   [[ $exitstatus == OK ]] || { warn "task failed: ${exitstatus:-no exit status}"; return 1; }
