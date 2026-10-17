@@ -17,6 +17,7 @@
 #                         ~/.config/lab/proxmox-api-token
 #   PROXMOX_VE_CACERT     the cluster CA (a copy of /etc/pve/pve-root-ca.pem) to verify against
 #   PROXMOX_VE_INSECURE   true to accept the cluster's certificate unverified (ignored with CACERT)
+#   LAB_TASK_TIMEOUT      seconds to wait for each Proxmox task (default 600)
 #
 # Needs curl and jq. Runs with macOS's bash 3.2.
 set -euo pipefail
@@ -24,7 +25,7 @@ set -euo pipefail
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
 log()  { printf '==> %s\n' "$*"; }
-usage() { sed -n '2,22s/^# \{0,1\}//p' "$0"; exit 1; }
+usage() { sed -n '2,23s/^# \{0,1\}//p' "$0"; exit 1; }
 
 LAB=${1:-} CMD=${2:-} ARG=${3:-}
 [[ -n $LAB && -n $CMD ]] || usage
@@ -62,27 +63,37 @@ api() {  # api GET|POST <path> [curl --data... args]
           -H "Authorization: PVEAPIToken=$PROXMOX_VE_API_TOKEN" \
           "${PROXMOX_VE_ENDPOINT%/}/api2/json$path" "$@") \
     || die "$method $path: $(jq -r '.message // .errors // .' <<<"$out" 2>/dev/null || printf '%s' "$out")"
-  jq -c '.data' <<<"$out"
+  jq -c '.data' <<<"$out" 2>/dev/null || die "$method $path: the API returned something that is not JSON"
 }
 
-# POSTs that start a task return its UPID; wait for it and report failure.
+# POSTs that start a task return its UPID; wait for it (at most
+# LAB_TASK_TIMEOUT seconds, default 600) and report failure.
 wait_task() {
-  local node=$1 upid=$2 st
+  local node=$1 upid=$2 st status exitstatus waited=0
+  local limit=${LAB_TASK_TIMEOUT:-600}
   [[ $upid == UPID:* ]] || return 0
-  upid=$(jq -rn --arg u "$upid" '$u | @uri')
+  upid=$(jq -rn --arg u "$upid" '$u | @uri') || return 1
   while :; do
     st=$(api GET "/nodes/$node/tasks/$upid/status") || return 1
-    [[ $(jq -r .status <<<"$st") == stopped ]] && break
+    status=$(jq -r '.status // empty' <<<"$st") || return 1
+    [[ $status == stopped ]] && break
+    if (( waited >= limit )); then
+      warn "task still '${status:-unknown}' after ${limit}s; giving up waiting (it may still finish)"
+      return 1
+    fi
     sleep 2
+    waited=$((waited + 2))
   done
-  [[ $(jq -r .exitstatus <<<"$st") == OK ]] || { warn "task failed: $(jq -r .exitstatus <<<"$st")"; return 1; }
+  exitstatus=$(jq -r '.exitstatus // empty' <<<"$st") || return 1
+  [[ $exitstatus == OK ]] || { warn "task failed: ${exitstatus:-no exit status}"; return 1; }
 }
 
 task() {  # task <node> <path> [curl --data... args]
-  local node=$1 path=$2 out
+  local node=$1 path=$2 out upid
   shift 2
   out=$(api POST "$path" "$@") || return 1
-  wait_task "$node" "$(jq -r '. // empty' <<<"$out")"
+  upid=$(jq -r '. // empty' <<<"$out") || return 1
+  wait_task "$node" "$upid"
 }
 
 # "<vmid> <node> <qemu|lxc> <status> <name>" per guest tagged $LAB, by VMID.
@@ -127,6 +138,7 @@ while read -r vmid node type status name <&3; do
       snaps=$(api GET "$base/snapshot" | jq -r '[.[] | select(.name != "current") | .name] | join(", ")')
       printf '%-6s %-20s %s\n' "$vmid" "$name" "${snaps:-(none)}"
       ;;
+    *) die "unreachable: unknown command $CMD" ;;
   esac
 done 3<<EOF
 $GUESTS

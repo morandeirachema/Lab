@@ -22,7 +22,7 @@
   register: pve_iac_roles
   changed_when: false
 
-- name: Create or update the {{ pve_iac_role }} role
+- name: Create or update the IaC role {{ pve_iac_role }}
   vars:
     pve_iac_current: >-
       {{ (pve_iac_roles.stdout | from_json)
@@ -52,7 +52,7 @@
   register: pve_iac_acls
   changed_when: false
 
-- name: Grant {{ pve_iac_role }} on / to {{ pve_iac_user }}
+- name: Grant the IaC role on / to {{ pve_iac_user }}
   ansible.builtin.command: pveum acl modify / --users {{ pve_iac_user }} --roles {{ pve_iac_role }}
   when: >-
     (pve_iac_acls.stdout | from_json)
@@ -76,7 +76,9 @@
   changed_when: true
   no_log: true
 
-- name: Save the token secret on this machine
+# Not a handler: the secret exists only in this task's registered output, so it is
+# saved right here, in the same run that created it.
+- name: Save the token secret on this machine  # noqa: no-handler
   when: pve_iac_new_token is changed
   delegate_to: localhost
   become: false

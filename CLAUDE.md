@@ -111,8 +111,8 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
 - **Debian 13 specifics** for `obs`. `/tmp` is a RAM tmpfs, so Loki's data lives in
   `/var/lib/loki`. The packaged Prometheus (2.53.3) has no OTLP receiver, so Alloy remote-writes.
   Alloy's unit has no capabilities, so binding 514 needs a drop-in.
-- **In this Ansible, Jinja string literals don't process backslash escapes**, so avoid escaping
-  logic in templates (the Grafana password is charset-restricted instead).
+- **Jinja string literals in Ansible don't process backslash escapes** (checked on ansible-core
+  2.15 and 2.21), so avoid escaping logic in templates (the Grafana password is charset-restricted instead).
 - **macOS `sed`** has no `\|` alternation, and `ls` may be aliased (use `command ls`).
 - Hardware ceiling: N100/N150 and the S12 Pro are **16 GB max** (Intel ARK, Beelink
   staff). Plan guests within it. The S13 Pro has no official spec page.
