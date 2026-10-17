@@ -1,0 +1,61 @@
+---
+# API identity OpenTofu uses. Names and privileges follow the bpg/proxmox
+# provider docs (docs/index.md, "API Token Authentication", v0.116.1).
+pve_iac_user: terraform@pve
+pve_iac_role: Terraform
+pve_iac_token: provider
+pve_iac_privileges:
+  - Datastore.Allocate
+  - Datastore.AllocateSpace
+  - Datastore.AllocateTemplate
+  - Datastore.Audit
+  - Group.Allocate
+  - Mapping.Audit
+  - Mapping.Modify
+  - Mapping.Use
+  - Permissions.Modify
+  - Pool.Allocate
+  - Pool.Audit
+  - Realm.Allocate
+  - Realm.AllocateUser
+  - SDN.Allocate
+  - SDN.Audit
+  - SDN.Use
+  - Sys.AccessNetwork
+  - Sys.Audit
+  - Sys.Console
+  - Sys.Incoming
+  - Sys.Modify
+  - Sys.PowerMgmt
+  - Sys.Syslog
+  - User.Modify
+  - VM.Allocate
+  - VM.Audit
+  - VM.Backup
+  - VM.Clone
+  - VM.Config.CDROM
+  - VM.Config.CPU
+  - VM.Config.Cloudinit
+  - VM.Config.Disk
+  - VM.Config.HWType
+  - VM.Config.Memory
+  - VM.Config.Network
+  - VM.Config.Options
+  - VM.Console
+  - VM.GuestAgent.Audit
+  - VM.GuestAgent.FileRead
+  - VM.GuestAgent.FileSystemMgmt
+  - VM.GuestAgent.FileWrite
+  - VM.GuestAgent.Unrestricted
+  - VM.Migrate
+  - VM.PowerMgmt
+  - VM.Replicate
+  - VM.Snapshot
+  - VM.Snapshot.Rollback
+
+# Where the token secret is written on the machine running Ansible (mode 0600).
+# It is shown by Proxmox only once, at creation.
+pve_iac_token_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/lab/proxmox-api-token"
+
+# Storage that receives uploaded disk images; needs the "import" content type.
+pve_iac_import_storage: local

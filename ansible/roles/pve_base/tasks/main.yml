@@ -86,6 +86,20 @@
     - Apply ZFS ARC limit
     - Update initramfs
 
+# --- Kernel modules for the lab gateway --------------------------------------
+- name: Load the lab gateway's netfilter modules at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/lab-gateway.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (pve_base)
+      {{ pve_base_kernel_modules | join('\n') }}
+
+- name: Load them now
+  ansible.builtin.command: modprobe {{ item }}
+  loop: "{{ pve_base_kernel_modules }}"
+  changed_when: false
+
 # --- Static routes (optional) -------------------------------------------------
 - name: Install the lab routes unit
   ansible.builtin.template:

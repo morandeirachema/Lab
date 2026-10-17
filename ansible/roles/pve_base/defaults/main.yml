@@ -29,5 +29,15 @@ pve_base_zfs_arc_max_gib: 2
 #     - { net: 10.10.10.0/24, via: 192.168.1.20 }
 pve_base_static_routes: []
 
+# Netfilter modules the lab gateway (an unprivileged container) needs for NAT
+# and connection tracking; a container cannot load kernel modules itself.
+pve_base_kernel_modules:
+  - nf_tables
+  - nft_ct
+  - nft_chain_nat
+  - nft_masq
+  - nf_nat
+  - nf_conntrack
+
 # Key-only SSH for root. Leave false until you have logged in with your key.
 pve_base_ssh_disable_passwords: false

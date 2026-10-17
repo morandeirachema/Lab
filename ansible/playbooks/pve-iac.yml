@@ -1,0 +1,10 @@
+---
+# Cluster-wide prerequisites for OpenTofu: the "import" content type on the
+# upload storage and the terraform@pve user, role and API token. Run once the
+# cluster exists (it changes /etc/pve, which every node shares).
+#
+#   cd ansible && ansible-playbook playbooks/pve-iac.yml
+- name: Prepare the cluster for OpenTofu
+  hosts: proxmox[0]
+  roles:
+    - role: pve_iac

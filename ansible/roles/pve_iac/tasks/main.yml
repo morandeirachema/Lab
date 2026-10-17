@@ -1,0 +1,106 @@
+---
+# Cluster-wide objects: run against one node only (see playbooks/pve-iac.yml).
+
+# --- Storage: allow disk images to be uploaded for import -----------------
+- name: Read the import storage configuration
+  ansible.builtin.command: pvesh get /storage/{{ pve_iac_import_storage }} --output-format json
+  register: pve_iac_storage
+  changed_when: false
+
+- name: Add the "import" content type to {{ pve_iac_import_storage }}
+  vars:
+    pve_iac_content: "{{ (pve_iac_storage.stdout | from_json).content.split(',') }}"
+  ansible.builtin.command: >-
+    pvesm set {{ pve_iac_import_storage }}
+    --content {{ (pve_iac_content + ['import']) | join(',') }}
+  when: "'import' not in pve_iac_content"
+  changed_when: true
+
+# --- Role --------------------------------------------------------------------
+- name: List roles
+  ansible.builtin.command: pveum role list --output-format json
+  register: pve_iac_roles
+  changed_when: false
+
+- name: Create or update the {{ pve_iac_role }} role
+  vars:
+    pve_iac_current: >-
+      {{ (pve_iac_roles.stdout | from_json)
+         | selectattr('roleid', 'equalto', pve_iac_role) | list }}
+    pve_iac_current_privs: >-
+      {{ (pve_iac_current[0].privs | default('')).split(',') | map('trim') | select | sort }}
+  ansible.builtin.command: >-
+    pveum role {{ 'modify' if pve_iac_current else 'add' }} {{ pve_iac_role }}
+    --privs {{ pve_iac_privileges | join(',') | quote }}
+  when: not pve_iac_current or pve_iac_current_privs != (pve_iac_privileges | sort)
+  changed_when: true
+
+# --- User and ACL -------------------------------------------------------------
+- name: List users
+  ansible.builtin.command: pveum user list --output-format json
+  register: pve_iac_users
+  changed_when: false
+
+- name: Create {{ pve_iac_user }}
+  ansible.builtin.command: >-
+    pveum user add {{ pve_iac_user }} --comment "OpenTofu automation (managed by Ansible pve_iac)"
+  when: pve_iac_user not in ((pve_iac_users.stdout | from_json) | map(attribute='userid') | list)
+  changed_when: true
+
+- name: List ACLs
+  ansible.builtin.command: pveum acl list --output-format json
+  register: pve_iac_acls
+  changed_when: false
+
+- name: Grant {{ pve_iac_role }} on / to {{ pve_iac_user }}
+  ansible.builtin.command: pveum acl modify / --users {{ pve_iac_user }} --roles {{ pve_iac_role }}
+  when: >-
+    (pve_iac_acls.stdout | from_json)
+    | selectattr('path', 'equalto', '/')
+    | selectattr('ugid', 'equalto', pve_iac_user)
+    | selectattr('roleid', 'equalto', pve_iac_role)
+    | list | length == 0
+  changed_when: true
+
+# --- Token (its secret is only shown once) --------------------------------------
+- name: List the user's tokens
+  ansible.builtin.command: pveum user token list {{ pve_iac_user }} --output-format json
+  register: pve_iac_tokens
+  changed_when: false
+
+- name: Create the API token
+  ansible.builtin.command: >-
+    pveum user token add {{ pve_iac_user }} {{ pve_iac_token }} --privsep 0 --output-format json
+  register: pve_iac_new_token
+  when: pve_iac_token not in ((pve_iac_tokens.stdout | from_json) | map(attribute='tokenid') | list)
+  changed_when: true
+  no_log: true
+
+- name: Save the token secret on this machine
+  when: pve_iac_new_token is changed
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Create the token directory
+      ansible.builtin.file:
+        path: "{{ pve_iac_token_file | dirname }}"
+        state: directory
+        mode: "0700"
+
+    - name: Write user@realm!token=secret
+      ansible.builtin.copy:
+        dest: "{{ pve_iac_token_file }}"
+        mode: "0600"
+        content: >-
+          {{ (pve_iac_new_token.stdout | from_json)['full-tokenid'] }}={{
+             (pve_iac_new_token.stdout | from_json)['value'] }}
+      no_log: true
+
+- name: Say where the token is
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'New token written to ' ~ pve_iac_token_file
+         if pve_iac_new_token is changed else
+         'Token ' ~ pve_iac_user ~ '!' ~ pve_iac_token ~ ' already exists; its secret is in '
+         ~ pve_iac_token_file ~ ' if this machine created it. To re-issue it: '
+         ~ 'pveum user token remove ' ~ pve_iac_user ~ ' ' ~ pve_iac_token ~ ', then re-run.' }}
