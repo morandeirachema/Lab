@@ -10,6 +10,9 @@
 *.iso
 *.mf
 
+# Unpacked OVAs and other build outputs (scripts/ova-unpack.sh)
+artifacts/
+
 # Local overrides and secrets
 config/*.local.env
 *.vault_pass

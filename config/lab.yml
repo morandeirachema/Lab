@@ -1,0 +1,69 @@
+---
+# The lab, declared once. OpenTofu (terraform/) builds the Proxmox objects from
+# it and Ansible (ansible/) configures what runs inside them. Host addresses
+# live in ansible/inventory/hosts.yml, which OpenTofu reads too.
+#
+# Values marked "placeholder" must be replaced with your own network.
+
+lan:
+  cidr: 192.168.1.0/24      # placeholder
+  gateway: 192.168.1.1      # placeholder
+  dns: 192.168.1.1          # placeholder
+
+storage:
+  vm: local-zfs             # VM disks and container root filesystems (local-lvm on ext4 installs)
+  files: local              # templates and disk images to import ("import" content enabled by Ansible)
+
+# Lab segments shared by every node.
+# type vlan:  tagged on vmbr0; the switch must pass 802.1Q tags.
+# type vxlan: tunnelled between node IPs; any switch, but guest MTU 1450.
+sdn:
+  zone: lab
+  type: vlan
+  bridge: vmbr0
+  vxlan_mtu: 1450
+  vnets:
+    pam: {tag: 10, alias: PAM lab}
+    devops: {tag: 20, alias: DevOps lab}
+    cyber: {tag: 30, alias: Cyber range - isolated}
+
+# Resource pools: one per lab plus infra, so permissions and views follow labs.
+pools:
+  infra: Shared lab infrastructure
+  pam: PAM lab
+  devops: DevOps lab
+  cyber: Cyber range
+
+# The lab gateway container: DHCP/DNS for the lab vnets and routing to the LAN.
+# Its LAN address is the labgw host in ansible/inventory/hosts.yml.
+gateway:
+  vmid: 110
+  node: pve1
+  hostname: labgw
+  domain: lab.home.arpa       # guests register as <name>.lab.home.arpa
+  snat_from_lan: false        # true for guests with a static IP and no default route
+  # One interface per entry, eth1, eth2... in this order. The cyber vnet is
+  # deliberately absent: the gateway never routes it.
+  nets:
+    - vnet: pam
+      address: 10.10.10.1/24
+      dhcp: [10.10.10.100, 10.10.10.199]
+      internet: false
+
+# Guests per lab. VMID order is boot order for scripts/pve/lab-ctl.sh.
+# Disk images come from scripts/ova-unpack.sh, which extracts and verifies an
+# OVA on this machine and prints the values to put here.
+labs:
+  pam:
+    vms:
+      - vmid: 1001
+        name: pamv1
+        node: pve1
+        memory: 2048            # what the PAMv1 OVF declares
+        cores: 2
+        os: l26
+        firmware: bios
+        vnet: pam
+        disks:
+          - image: artifacts/ova/pamv1-appliance-13.6.0/pamv1-appliance-disk1.vmdk
+            size_gb: 20         # replace with the capacity ova-unpack.sh reports
