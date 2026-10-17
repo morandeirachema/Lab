@@ -1,0 +1,33 @@
+---
+# Proxmox VE major version and Debian suite this role is written for.
+pve_base_major: 9
+pve_base_suite: trixie
+
+# apt full-upgrade on every run; reboot afterwards only if asked to.
+pve_base_full_upgrade: true
+pve_base_reboot: false
+
+pve_base_packages:
+  - jq            # used by scripts/pve/*.sh
+  - git
+  - rsync
+  - vim
+  - tmux
+  - htop
+  - iperf3        # measure the link between nodes
+  - ethtool
+  - lm-sensors
+
+pve_base_swappiness: 10
+
+# Upper limit for the ZFS ARC in GiB on ZFS-installed nodes; 0 leaves it alone.
+pve_base_zfs_arc_max_gib: 2
+
+# Static routes on the node itself, e.g. to reach the lab nets behind the lab
+# gateway from a Tailscale subnet router:
+#   pve_base_static_routes:
+#     - { net: 10.10.10.0/24, via: 192.168.1.20 }
+pve_base_static_routes: []
+
+# Key-only SSH for root. Leave false until you have logged in with your key.
+pve_base_ssh_disable_passwords: false

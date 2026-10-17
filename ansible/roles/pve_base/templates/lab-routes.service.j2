@@ -1,0 +1,18 @@
+# Managed by Ansible (pve_base)
+[Unit]
+Description=Static routes to the lab networks behind the lab gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+{% for route in pve_base_static_routes %}
+ExecStart=/usr/sbin/ip route replace {{ route.net }} via {{ route.via }}
+{% endfor %}
+{% for route in pve_base_static_routes %}
+ExecStop=-/usr/sbin/ip route del {{ route.net }} via {{ route.via }}
+{% endfor %}
+
+[Install]
+WantedBy=multi-user.target

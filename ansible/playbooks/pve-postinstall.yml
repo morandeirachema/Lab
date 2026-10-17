@@ -1,0 +1,10 @@
+---
+# Baseline for every Proxmox node: repositories, updates, tools, kernel and
+# SSH settings. One node at a time, so a reboot never takes the cluster down.
+#
+#   cd ansible && ansible-playbook playbooks/pve-postinstall.yml [--limit pve3]
+- name: Proxmox VE post-install baseline
+  hosts: proxmox
+  serial: 1
+  roles:
+    - role: pve_base
