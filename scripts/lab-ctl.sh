@@ -15,7 +15,8 @@
 #   PROXMOX_VE_ENDPOINT   default https://<first host in ansible/inventory/hosts.yml>:8006/
 #   PROXMOX_VE_API_TOKEN  default: the file ansible/playbooks/pve-iac.yml wrote,
 #                         ~/.config/lab/proxmox-api-token
-#   PROXMOX_VE_INSECURE   true to accept the cluster's self-signed certificate
+#   PROXMOX_VE_CACERT     the cluster CA (a copy of /etc/pve/pve-root-ca.pem) to verify against
+#   PROXMOX_VE_INSECURE   true to accept the cluster's certificate unverified (ignored with CACERT)
 #
 # Needs curl and jq. Runs with macOS's bash 3.2.
 set -euo pipefail
@@ -23,7 +24,7 @@ set -euo pipefail
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
 log()  { printf '==> %s\n' "$*"; }
-usage() { sed -n '2,21s/^# \{0,1\}//p' "$0"; exit 1; }
+usage() { sed -n '2,22s/^# \{0,1\}//p' "$0"; exit 1; }
 
 LAB=${1:-} CMD=${2:-} ARG=${3:-}
 [[ -n $LAB && -n $CMD ]] || usage
@@ -47,7 +48,12 @@ if [[ -z ${PROXMOX_VE_API_TOKEN:-} ]]; then
   PROXMOX_VE_API_TOKEN=$(tr -d '\n' < "$token_file")
 fi
 TLS=()
-[[ ${PROXMOX_VE_INSECURE:-false} == true ]] && TLS=(--insecure)
+if [[ -n ${PROXMOX_VE_CACERT:-} ]]; then
+  [[ -r $PROXMOX_VE_CACERT ]] || die "PROXMOX_VE_CACERT: cannot read $PROXMOX_VE_CACERT"
+  TLS=(--cacert "$PROXMOX_VE_CACERT")
+elif [[ ${PROXMOX_VE_INSECURE:-false} == true ]]; then
+  TLS=(--insecure)
+fi
 
 api() {  # api GET|POST <path> [curl --data... args]
   local method=$1 path=$2 out
