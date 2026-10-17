@@ -1,0 +1,62 @@
+// {{ ansible_managed }}
+// Syslog (WALLIX, the gateway, anything on the lab nets) -> Loki
+// OTLP/HTTP metrics (the Proxmox nodes' metric server) -> Prometheus remote write
+
+// loki.source.syslog drops __-prefixed labels unless relabel rules keep them.
+// Keep a few useful ones only, so Loki's label cardinality stays low.
+loki.relabel "syslog" {
+  forward_to = []
+
+  rule {
+    action = "labelmap"
+    regex  = "__syslog_(message_hostname|message_app_name|message_severity|message_facility|connection_ip_address)"
+  }
+}
+
+loki.source.syslog "lab" {
+  listener {
+    address       = "0.0.0.0:{{ observability_syslog_port }}"
+    protocol      = "tcp"
+    syslog_format = "{{ observability_syslog_format }}"
+    labels        = { source = "syslog", protocol = "tcp" }
+  }
+
+  listener {
+    address       = "0.0.0.0:{{ observability_syslog_port }}"
+    protocol      = "udp"
+    syslog_format = "{{ observability_syslog_format }}"
+    labels        = { source = "syslog", protocol = "udp" }
+  }
+
+  relabel_rules = loki.relabel.syslog.rules
+  forward_to    = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://127.0.0.1:3100/loki/api/v1/push"
+  }
+}
+
+otelcol.receiver.otlp "proxmox" {
+  http {
+    endpoint = "0.0.0.0:{{ observability_otlp_http_port }}"
+  }
+
+  output {
+    metrics = [otelcol.exporter.prometheus.local.input]
+  }
+}
+
+// Resource attributes (e.g. which node sent the metric) become labels, so the
+// nodes' series stay apart instead of only landing in target_info.
+otelcol.exporter.prometheus "local" {
+  resource_to_telemetry_conversion = true
+  forward_to                       = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.remote_write "local" {
+  endpoint {
+    url = "http://127.0.0.1:9090/api/v1/write"
+  }
+}

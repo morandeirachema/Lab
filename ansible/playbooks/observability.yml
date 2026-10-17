@@ -1,0 +1,15 @@
+---
+# Configure the observability VM that OpenTofu created (terraform/observability.tf):
+# Grafana Alloy, Loki, Prometheus and Grafana.
+#
+#   export GRAFANA_ADMIN_PASSWORD='...'   # first run only, 12+ characters
+#   cd ansible && ansible-playbook playbooks/observability.yml
+- name: Observability stack
+  hosts: observability
+  pre_tasks:
+    - name: Load config/lab.yml
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../config/lab.yml"
+        name: lab
+  roles:
+    - role: observability

@@ -1,0 +1,22 @@
+---
+# Logs and metrics are kept this long (Loki retention_period, Prometheus
+# --storage.tsdb.retention.time). Prometheus also stops at a size cap.
+observability_retention_days: 14
+observability_prometheus_retention_size: 10GB
+
+# Receivers in Alloy. They must match config/lab.yml observability.collector,
+# which is what the gateway lets the lab nets send (asserted by the role).
+observability_syslog_port: 514
+observability_otlp_http_port: 4318
+
+# What WALLIX sends: its Splunk add-on documents "RFC 5424 or legacy".
+# Alloy's values: rfc5424 (default) or rfc3164 for legacy BSD syslog.
+observability_syslog_format: rfc5424
+
+# Loki's data. The packaged config uses /tmp/loki, but /tmp is a RAM tmpfs on
+# Debian 13, so the data would be lost on reboot and would eat the VM's memory.
+observability_loki_dir: /var/lib/loki
+
+# Grafana's admin password, read from the environment of the machine running
+# Ansible and never stored in the repo. Grafana applies it once, on first run.
+observability_grafana_admin_password: "{{ lookup('ansible.builtin.env', 'GRAFANA_ADMIN_PASSWORD') }}"

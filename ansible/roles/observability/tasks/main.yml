@@ -1,0 +1,144 @@
+---
+# Expects config/lab.yml loaded as `lab` (see playbooks/observability.yml).
+
+- name: The Alloy receivers match what the gateway lets in
+  ansible.builtin.assert:
+    that:
+      - observability_syslog_port in lab.observability.collector.tcp
+      - observability_syslog_port in lab.observability.collector.udp
+      - observability_otlp_http_port in lab.observability.collector.tcp
+    fail_msg: >-
+      config/lab.yml observability.collector must allow syslog {{ observability_syslog_port }}
+      (tcp and udp) and OTLP/HTTP {{ observability_otlp_http_port }} (tcp).
+
+# --- Packages: Grafana's APT repository (grafana, loki, alloy) + Debian's prometheus
+# Repository setup as in Grafana's Debian install docs.
+- name: Create the APT keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add Grafana's signing key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg-full.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Add Grafana's repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/grafana.list
+    mode: "0644"
+    content: |
+      deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main
+
+- name: Install Grafana, Loki, Alloy and Prometheus
+  ansible.builtin.apt:
+    name: [grafana, loki, alloy, prometheus]
+    state: present
+    update_cache: true
+
+# --- Loki --------------------------------------------------------------------
+- name: Loki data directory (not /tmp, which is RAM on Debian 13)
+  ansible.builtin.file:
+    path: "{{ observability_loki_dir }}"
+    state: directory
+    owner: loki
+    mode: "0750"
+
+- name: Loki configuration
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: /etc/loki/config.yml
+    mode: "0644"
+  notify: Restart loki
+
+# --- Prometheus: accepts Alloy's remote write (Debian 13's build has no OTLP receiver)
+- name: Prometheus arguments
+  vars:
+    observability_prometheus_args:
+      - --web.enable-remote-write-receiver
+      - --storage.tsdb.retention.time={{ observability_retention_days }}d
+      - --storage.tsdb.retention.size={{ observability_prometheus_retention_size }}
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus
+    mode: "0644"
+    content: |
+      # Managed by Ansible (observability)
+      ARGS="{{ observability_prometheus_args | join(' ') }}"
+  notify: Restart prometheus
+
+- name: Directories for the systemd drop-ins
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.service.d"
+    state: directory
+    mode: "0755"
+  loop: [alloy, grafana-server]
+
+# --- Alloy: syslog -> Loki, OTLP metrics -> Prometheus ---------------------------
+- name: Alloy configuration
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: /etc/alloy/config.alloy
+    mode: "0644"
+  notify: Restart alloy
+
+- name: Let Alloy bind the syslog port (below 1024; its unit grants no capabilities)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/alloy.service.d/10-bind-syslog.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (observability)
+      [Service]
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+  notify:
+    - Reload systemd for observability
+    - Restart alloy
+
+# --- Grafana ------------------------------------------------------------------
+- name: Provision the Prometheus and Loki data sources
+  ansible.builtin.template:
+    src: datasources.yaml.j2
+    dest: /etc/grafana/provisioning/datasources/lab.yaml
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Look for an existing admin password drop-in
+  ansible.builtin.stat:
+    path: /etc/systemd/system/grafana-server.service.d/10-admin.conf
+  register: observability_grafana_dropin
+
+# The password goes into a systemd Environment= line, where % " \ and $ need
+# escaping; allowing only characters that need none keeps it exact.
+- name: Require a usable admin password for Grafana's first run
+  ansible.builtin.assert:
+    that: >-
+      observability_grafana_dropin.stat.exists and observability_grafana_admin_password | length == 0
+      or observability_grafana_admin_password is match('^[A-Za-z0-9_.:@+=!?,~#-]{12,}$')
+    fail_msg: >-
+      Before the first run, export GRAFANA_ADMIN_PASSWORD: 12 or more characters, letters,
+      digits and _ . : @ + = ! ? , ~ # - only, so Grafana never starts with admin/admin.
+
+- name: Grafana admin password (GF_SECURITY_ADMIN_PASSWORD, root-only drop-in)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/grafana-server.service.d/10-admin.conf
+    mode: "0600"
+    content: |
+      # Managed by Ansible (observability). Grafana applies admin_password once, on first run.
+      [Service]
+      Environment="GF_SECURITY_ADMIN_PASSWORD={{ observability_grafana_admin_password }}"
+  when: observability_grafana_admin_password | length >= 12
+  no_log: true
+  notify:
+    - Reload systemd for observability
+    - Restart grafana
+
+- name: Apply configuration changes before starting the services
+  ansible.builtin.meta: flush_handlers
+
+- name: Start the stack at boot
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [loki, prometheus, alloy, grafana-server]
