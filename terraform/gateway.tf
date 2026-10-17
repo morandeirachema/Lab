@@ -24,7 +24,7 @@ resource "proxmox_virtual_environment_container" "gateway" {
   pool_id     = proxmox_virtual_environment_pool.lab["infra"].pool_id
 
   unprivileged  = true
-  started       = true
+  started       = true # created running; afterwards power is lab-ctl's, not OpenTofu's
   start_on_boot = true
 
   features {
@@ -97,6 +97,10 @@ resource "proxmox_virtual_environment_container" "gateway" {
       firewall = false
       mtu      = local.vxlan ? local.lab.sdn.vxlan_mtu : null
     }
+  }
+
+  lifecycle {
+    ignore_changes = [started]
   }
 
   depends_on = [proxmox_sdn_applier.lab, terraform_data.config_checks]

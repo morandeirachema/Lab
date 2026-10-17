@@ -76,13 +76,22 @@ flowchart LR
 
 ## Build it
 
-After `make apply` (which creates the VM and the metric server) and `make gateway`:
+After `make apply` (which creates the VM) and `make gateway`:
 
 ```sh
-make nodes                                  # the nodes' routes to 10.10.40.0/24
+make routes                                 # the nodes' routes to 10.10.40.0/24 (no upgrades)
 export GRAFANA_ADMIN_PASSWORD='…'           # first run only: 12+ characters, no spaces
-make obs
+make obs                                    # Alloy, Loki, Prometheus, Grafana
+# then set observability.metrics_push: true in config/lab.yml, and:
+make apply                                  # Proxmox's metric server, now that Alloy answers
 ```
+
+The metric server waits for that last step for a reason. Proxmox tests an OpenTelemetry
+metric server when it's created: it POSTs to it and refuses the server if nothing answers
+(`PVE/Status/OpenTelemetry.pm`, `test_connection`). Alloy only exists after `make obs`.
+
+The Mac needs routes to **both** lab subnets (`10.10.10.0/24` and `10.10.40.0/24`) via `labgw`
+for `make obs` and for Grafana ([02](02-network.md#reaching-the-lab-from-the-mac)).
 
 Open **Grafana at `http://obs.lab.home.arpa:3000`** (or `http://10.10.40.10:3000`) from the Mac.
 The gateway publishes the `obs` name, and Pi-hole's forwarding entry or the Mac's resolver file

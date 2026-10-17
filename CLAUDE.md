@@ -83,8 +83,10 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   (`content_type = "import"`) and attaches it with `disk.import_from`.
 
 **Deliberate behaviours.**
-- VMs are created with `started = false` and `ignore_changes = [started]`. Power belongs to
-  `lab-ctl.sh`; don't make OpenTofu manage it.
+- Lab VMs are created stopped, infra (`labgw`, `obs`) created running, and every guest has
+  `ignore_changes = [started]`. Power belongs to `lab-ctl.sh`; don't make OpenTofu manage it.
+- `proxmox_metrics_server` exists only when `observability.metrics_push` is true. Proxmox tests
+  an OTel server on creation and fails if Alloy isn't answering yet.
 - SDN changes are applied by the `proxmox_sdn_applier` "lab" + "finalizer" pair, the
   pattern from the provider's docs.
 - `terraform_data.config_checks` and per-resource preconditions validate `lab.yml` at

@@ -77,8 +77,11 @@ gateway:
 # Debian 13 cloud image + cloud-init, always on, in the infra pool.
 observability:
   enabled: true
+  # Off until `make obs` has installed Alloy: Proxmox tests the metric server
+  # when it is created and refuses one nobody answers. Then true + make apply.
+  metrics_push: false
   vmid: 120
-  node: pve2
+  node: pve1                    # with the gateway: monitoring then depends on one node, not two
   hostname: obs
   memory: 4096                  # the ceiling for the whole stack
   cores: 2

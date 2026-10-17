@@ -96,6 +96,7 @@ make init && make plan         # read the plan
 make apply                     # SDN, pools, gateway, WALLIX VMs
 make gateway                   # DHCP + firewall inside the gateway
 export GRAFANA_ADMIN_PASSWORD=… && make obs   # logs + metrics + Grafana  (docs/10)
+#   then observability.metrics_push: true in config/lab.yml, and make apply again
 make lab LAB=wallix CMD=start
 ```
 

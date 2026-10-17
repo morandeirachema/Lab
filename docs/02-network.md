@@ -61,7 +61,7 @@ The S12 Pro has a single NIC, so every lab segment shares one cable per node. Th
 
 - **`vlan`** (default). Lab traffic is 802.1Q-tagged on `vmbr0`. Every switch between
   the nodes must pass tagged frames. A managed switch does, if the ports are trunks for
-  tags 10/20/30. Unmanaged switches and ISP routers vary.
+  tags 10/20/30/40 (40 is the `obs` segment). Unmanaged switches and ISP routers vary.
 - **`vxlan`**. Lab traffic is tunnelled over UDP between the node addresses, which
   works on any switch. The cost is MTU. In the Proxmox docs' words, "because VXLAN
   encapsulation uses 50 bytes, the MTU needs to be 50 bytes lower than the outgoing
@@ -112,16 +112,22 @@ deployed, that is the first suspect.
 
 The lab nets sit behind `labgw`, so your Mac needs a route to them. Pick one:
 
-1. **On the home router** (best, if it supports static routes): `10.10.10.0/24` via
+Route both routed lab subnets: `10.10.10.0/24` (`pam`) and `10.10.40.0/24` (`obs`). Add the
+others as you add them to `gateway.nets`.
+
+1. **On the home router** (best, if it supports static routes): each subnet via
    `192.168.1.20`.
 2. **On the Mac only, until reboot:**
    ```sh
    sudo route -n add -net 10.10.10.0/24 192.168.1.20
+   sudo route -n add -net 10.10.40.0/24 192.168.1.20
    ```
 3. **On the Mac, persistent.** `networksetup` replaces the whole list each time, so
-   name every route you want to keep:
+   name every route you want to keep in the same call:
    ```sh
-   networksetup -setadditionalroutes "Wi-Fi" 10.10.10.0 255.255.255.0 192.168.1.20
+   networksetup -setadditionalroutes "Wi-Fi" \
+     10.10.10.0 255.255.255.0 192.168.1.20 \
+     10.10.40.0 255.255.255.0 192.168.1.20
    networksetup -getadditionalroutes "Wi-Fi"
    ```
 

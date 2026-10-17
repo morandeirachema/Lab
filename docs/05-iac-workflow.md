@@ -30,6 +30,10 @@ against the provider's real schema, without touching the cluster.
 | Pi-hole's `dns.revServers` entry | One setting in an existing container on the NAS ([09](09-nas-and-control-node.md#5-lab-names-through-pi-hole)) |
 | Mac mini as control node | `pmset`, Remote Login and tools, done once on that Mac ([09](09-nas-and-control-node.md)) |
 | Accepting SSH host keys | First `ssh` to each node, `labgw` and `obs`; Ansible checks host keys and won't accept them silently |
+| Turning on `observability.metrics_push` | Proxmox refuses a metric server nobody answers, so it's created after `make obs` ([10](10-observability.md#build-it)) |
+| Pointing WALLIX at the collector | The Bastion's System → SIEM integration / Syslog pages ([10](10-observability.md#send-wallixs-logs-to-it)) |
+| Grafana alert rules and dashboards | Built in Grafana; not provisioned yet |
+| Upgrading Grafana, Loki, Alloy | Kept out of unattended upgrades on purpose, so a new major can't break the configs (`apt upgrade` on `obs`) |
 | Routes from the Mac to the lab nets | A router or Mac setting ([02](02-network.md#reaching-the-lab-from-the-mac)); Ansible reaches `obs` (`10.10.40.10`) through it |
 | Getting the WALLIX OVAs | They come from WALLIX; `make unpack` takes them from there |
 | Power state and snapshots | Day-to-day operations, not desired state: `make lab` |
@@ -50,11 +54,14 @@ make apply                       # SDN, pools, gateway container, WALLIX VMs
 make gateway                     # dnsmasq + nftables inside the gateway
 export GRAFANA_ADMIN_PASSWORD=…   # first run of make obs only
 make obs                         # observability stack (10-observability.md)
+# set observability.metrics_push: true in config/lab.yml, then:
+make apply                       # Proxmox's metric server (needs Alloy up)
 make lab LAB=wallix CMD=start
 ```
 
 To change anything later, edit `config/lab.yml` and run `make plan`, then `make apply`.
-If the change concerns the gateway's nets, run `make gateway` too.
+If the change concerns the gateway's nets, also run `make gateway` (its DHCP/DNS and firewall)
+and `make routes` (the nodes' routes to them).
 
 ## State and secrets
 

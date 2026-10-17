@@ -38,7 +38,9 @@ are marked as such.
 **What this means here:**
 
 - **Budget.** WALLIX's own course lab wants a 32 GB host. This cluster has about 25 GB for
-  guests across two nodes. Two Bastions take 8 GB by WALLIX's sizing. The domain controller,
+  guests across two nodes, **about 21 GB** once the observability VM (4 GB, on `pve1`) runs.
+  So `pve1` has about 8–9 GB left for lab guests and `pve2` about 12–13 GB. Two Bastions take
+  8 GB by WALLIX's sizing. The domain controller,
   the Windows Server and the Linux server have to fit in what's left. Their sizes in the
   course OVAs are what `make unpack` reports; split the five guests across `pve1` and `pve2`.
 - **Bastion image.** If you have WALLIX support access, the **KVM `.qcow2`** is the image made

@@ -63,7 +63,7 @@ Upgrading RAM is not a plan.
 | Left for guests | ~12–13 GB |
 
 Today that is about 25 GB for guests across two nodes. With `pve3` it becomes about
-37 GB. The gateway takes 256 MB and the observability VM 4 GB (on `pve2`). Size the WALLIX lab's guests in `config/lab.yml` against this
+37 GB. The gateway takes 256 MB and the observability VM 4 GB, both on `pve1`. Size the WALLIX lab's guests in `config/lab.yml` against this
 budget; Windows Server guests are the expensive part.
 
 ## BIOS settings (S12 Pro)

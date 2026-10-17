@@ -11,6 +11,13 @@ locals {
   obs_net     = local.obs_enabled ? one([for n in local.lab.gateway.nets : n if n.vnet == local.obs.vnet]) : null
   obs_gateway = local.obs_net != null ? split("/", local.obs_net.address)[0] : null
   obs_prefix  = local.obs_net != null ? split("/", local.obs_net.address)[1] : null
+  # null-safe, so observability.enabled: false (count = 0) still validates and the
+  # preconditions below can say what is missing
+  obs_cidr = local.obs_ip != null && local.obs_prefix != null ? "${local.obs_ip}/${local.obs_prefix}" : null
+  obs_user = try(local.inventory.all.children.observability.vars.ansible_user, "debian")
+  # Proxmox tests an OpenTelemetry metric server on creation (it POSTs to it and
+  # fails unless Alloy answers), so it is created only once `make obs` has run.
+  obs_push = local.obs_enabled && try(local.obs.metrics_push, false)
 }
 
 resource "proxmox_download_file" "debian_cloud" {
@@ -34,7 +41,7 @@ resource "proxmox_virtual_environment_vm" "obs" {
   tags        = ["infra", "obs"]
   pool_id     = proxmox_virtual_environment_pool.lab["infra"].pool_id
 
-  started         = true
+  started         = true # created running; afterwards power is lab-ctl's, not OpenTofu's
   on_boot         = true
   stop_on_destroy = true
 
@@ -76,18 +83,20 @@ resource "proxmox_virtual_environment_vm" "obs" {
 
     ip_config {
       ipv4 {
-        address = "${local.obs_ip}/${local.obs_prefix}"
+        address = local.obs_cidr
         gateway = local.obs_gateway
       }
     }
 
     user_account {
-      username = "debian"
+      username = local.obs_user # the observability group's ansible_user
       keys     = var.ssh_public_keys
     }
   }
 
   lifecycle {
+    ignore_changes = [started]
+
     precondition {
       condition     = local.obs_ip != null
       error_message = "observability.enabled is true but ansible/inventory/hosts.yml has no observability group with host obs."
@@ -112,11 +121,11 @@ resource "proxmox_virtual_environment_vm" "obs" {
 # Every node pushes its host, guest and storage metrics to Alloy's OTLP/HTTP
 # receiver. The nodes reach 10.10.40.0/24 through labgw (pve_base lab routes).
 resource "proxmox_metrics_server" "obs" {
-  count = local.obs_enabled ? 1 : 0
+  count = local.obs_push ? 1 : 0
 
   name                  = "obs"
   type                  = "opentelemetry"
-  server                = local.obs_ip
+  server                = coalesce(local.obs_ip, "unset")
   port                  = local.obs.otlp_port
   opentelemetry_proto   = "http"
   opentelemetry_path    = "/v1/metrics"
