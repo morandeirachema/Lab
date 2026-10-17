@@ -1,0 +1,39 @@
+# Virtual machine images never go in git — they live on the Proxmox nodes
+*.ova
+*.ovf
+*.vmdk
+*.vdi
+*.vhd
+*.vhdx
+*.qcow2
+*.img
+*.iso
+*.mf
+
+# Local overrides and secrets
+config/*.local.env
+*.vault_pass
+.vault_pass*
+.env
+.env.*
+*.pem
+*.key
+*_rsa
+*_ed25519
+
+# Ansible
+*.retry
+ansible/.ansible/
+
+# Terraform / OpenTofu (later phases)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# OS / editor noise
+.DS_Store
+*.swp
+.vscode/
+.idea/
