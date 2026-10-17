@@ -21,6 +21,7 @@ make check                      # shellcheck + yamllint + ansible --syntax-check
 shellcheck scripts/lab-ctl.sh   # one script
 yamllint -s config/lab.yml      # one YAML file (config: .yamllint.yml)
 cd ansible && ansible-playbook --syntax-check playbooks/lab-gateway.yml   # one playbook
+cd ansible && ansible-lint --profile production                          # the strictest profile; CI enforces it
 cd terraform && tofu validate
 ```
 

@@ -26,7 +26,7 @@ One YAML file describes the lab; OpenTofu and Ansible build it; `make` drives ev
 - **Remote by default.** `make lab` starts, stops, snapshots and rolls back whole labs over the Proxmox API. Tailscale reaches the nodes from anywhere without opening a port.
 - **No secrets in git.** The API token lives in `~/.config/lab/` (0600). The Tailscale key is read from the environment. OVAs and disks are git-ignored.
 - **Checked, not guessed.** Specs and commands come from Beelink, Intel, Proxmox, Tailscale and provider sources, linked in the docs. Anything unverified (like the S13 Pro's specs) is marked as unverified.
-- **CI on every push.** shellcheck, yamllint, Ansible syntax, and `tofu validate` against the provider's real schema, all without touching the cluster.
+- **CI on every push.** shellcheck, yamllint, Ansible syntax, ansible-lint at its strictest (`production`) profile, and `tofu validate` against the provider's real schema, all without touching the cluster. Actions are pinned by commit SHA and kept current by Dependabot.
 
 ## 🗺️ Architecture
 

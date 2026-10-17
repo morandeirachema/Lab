@@ -16,3 +16,13 @@ output "gateway" {
     nets   = { for i, n in local.gateway_nets : "eth${i}" => "${n.vnet} ${n.address}" }
   }
 }
+
+output "observability" {
+  description = "The observability VM; configure it next with ansible/playbooks/observability.yml."
+  value = local.obs_enabled ? {
+    vmid        = local.obs.vmid
+    node        = local.obs.node
+    address     = local.obs_ip
+    grafana_url = "http://${local.obs.hostname}.${local.lab.gateway.domain}:3000"
+  } : null
+}
