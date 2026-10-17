@@ -184,7 +184,7 @@ Install Tailscale on the Mac mini too, so that works from outside home.
 Install the same tools as in [03-install.md](03-install.md#on-the-mac-once):
 
 ```sh
-brew install ansible opentofu jq shellcheck yamllint
+brew install ansible ansible-lint opentofu jq shellcheck yamllint
 git clone https://github.com/morandeirachema/Lab.git ~/code/Lab && cd ~/code/Lab
 ssh-keygen -t ed25519                    # the control node's own key
 ssh-copy-id root@192.168.1.11            # … and every other node

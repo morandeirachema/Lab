@@ -1,0 +1,20 @@
+---
+# Keep the pinned CI actions and the OpenTofu provider current.
+# Both ecosystems are in GitHub's Dependabot options reference. A 7-day
+# cooldown keeps a just-published (possibly compromised) release out of a PR
+# until it has been public for a week; security updates are not delayed.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: opentofu
+    directory: /terraform
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

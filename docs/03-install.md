@@ -6,7 +6,7 @@ nothing to run code on yet.
 ## On the Mac, once
 
 ```sh
-brew install ansible opentofu jq shellcheck yamllint
+brew install ansible ansible-lint opentofu jq shellcheck yamllint
 git clone https://github.com/morandeirachema/Lab.git && cd Lab
 make check            # everything validates offline before you touch a node
 ```

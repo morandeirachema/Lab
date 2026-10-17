@@ -80,7 +80,7 @@ flowchart TB
 ## 🚀 Quick start
 
 ```sh
-brew install ansible opentofu jq shellcheck yamllint
+brew install ansible ansible-lint opentofu jq shellcheck yamllint
 make check                     # validate everything offline
 ```
 

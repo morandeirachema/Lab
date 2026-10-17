@@ -16,10 +16,11 @@ export PROXMOX_VE_INSECURE ?= true
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
 
-check: ## Lint and validate everything offline (what CI runs)
+check: ## Lint and validate everything offline (what CI runs; needs ansible-lint)
 	shellcheck scripts/*.sh
 	yamllint -s .
 	cd ansible && ansible-playbook --syntax-check playbooks/*.yml
+	cd ansible && ansible-lint --profile production
 	cd terraform && $(TOFU) fmt -check -recursive && $(TOFU) init -backend=false -input=false >/dev/null && $(TOFU) validate
 
 ping: ## Check Ansible reaches every Proxmox node

@@ -1,7 +1,8 @@
 ---
-# Offline checks on every push: shell, YAML, Ansible syntax, OpenTofu
-# format and validation against the real provider schema. Nothing here
-# talks to the cluster.
+# Offline checks on every push: shell, YAML, Ansible syntax and lint
+# (production profile), OpenTofu format and validation against the real
+# provider schema. Nothing here talks to the cluster. Actions are pinned to
+# commit SHAs; Dependabot (.github/dependabot.yml) proposes updates.
 name: check
 
 on:
@@ -11,20 +12,28 @@ on:
 permissions:
   contents: read
 
+# One run per branch: a new push cancels the run it supersedes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    name: make check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false  # nothing here pushes; don't leave the token on disk
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.12"
 
-      - name: Install shellcheck, yamllint and ansible-core
-        run: pip install shellcheck-py yamllint ansible-core
+      - name: Install shellcheck, yamllint, ansible-core and ansible-lint
+        run: pip install shellcheck-py yamllint ansible-core ansible-lint
 
-      - uses: opentofu/setup-opentofu@v2
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4  # v2.0.2
         with:
           tofu_version: 1.13.1
           tofu_wrapper: false
