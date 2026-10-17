@@ -9,6 +9,7 @@
 | Cluster prerequisites | Ansible | `ansible/roles/pve_iac` | `terraform@pve`, the `Terraform` role, its API token, `import` content on `local` |
 | Proxmox objects | OpenTofu | `terraform/` | SDN zone and vnets, pools, the container template, the gateway container, uploaded disk images, lab VMs |
 | Inside the gateway | Ansible | `ansible/roles/lab_gateway` | dnsmasq and nftables, rendered from `config/lab.yml` |
+| Observability | Ansible | `ansible/roles/observability` | Alloy, Loki, Prometheus and Grafana on the `obs` VM |
 | Remote access | Ansible | `ansible/roles/tailscale` | Tailscale on the nodes, subnet routes |
 | Operations | scripts | `scripts/lab-ctl.sh`, `scripts/ova-unpack.sh` | Power, snapshots and rollbacks over the API; unpacking an OVA for import |
 
@@ -40,6 +41,8 @@ make init                        # OpenTofu providers, pinned by the lock file
 make plan                        # read it
 make apply                       # SDN, pools, gateway container, WALLIX VMs
 make gateway                     # dnsmasq + nftables inside the gateway
+export GRAFANA_ADMIN_PASSWORD=…   # first run of make obs only
+make obs                         # observability stack (10-observability.md)
 make lab LAB=wallix CMD=start
 ```
 

@@ -21,6 +21,12 @@ the plan (WCP-P is held).
 Windows guests are the costly part, at roughly 2–4 GB each. Plan two to three of them
 across the two nodes.
 
+## Observability (in code now)
+
+A 4 GB SIEM-lite: WALLIX syslog into Loki, Proxmox metrics into Prometheus, Grafana on top
+([10](10-observability.md)). **Wazuh**, a full SIEM, needs 8 GiB by its own quickstart, so it
+waits for pve3 (phase 4).
+
 ## Phase 2: DevOps (`devops` segment, internet allowed)
 
 - Add `devops` to `gateway.nets` with `internet: true`.
@@ -29,7 +35,7 @@ across the two nodes.
   cloud-init, so they are built from code and not from an OVA.
 - A three-VM Kubernetes cluster (kubeadm), one VM per node once `pve3` exists. → **CKA**,
   then **CKS** (hardening, policies, runtime security).
-- A Git forge with CI runners, and Prometheus/Grafana for the nodes and guests.
+- A Git forge with CI runners. Prometheus and Grafana already run on `obs`.
 
 Rough size: 3 × 4 GB for Kubernetes, plus 2–4 GB for the forge and monitoring. This
 phase really wants `pve3`.
@@ -57,4 +63,5 @@ it only in hybrid-identity exercises.
 - Backups: `vzdump` to a disk in an S12 Pro's 2.5" bay, or a Proxmox Backup Server.
   OpenTofu can declare the storage (`proxmox_storage_directory` / `proxmox_storage_pbs`)
   and the job (`proxmox_backup_job`).
-- About 37 GB for guests in total, which makes phase 2 practical.
+- About 37 GB for guests in total, which makes phase 2 practical, and makes room for Wazuh
+  (4 vCPU / 8 GiB for 1–25 agents, per its quickstart) next to the SIEM-lite or in its place.

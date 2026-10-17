@@ -71,6 +71,11 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
 - Lab membership: `terraform/vms.tf` tags each VM `lab` + `<labname>` and puts it in pool
   `<labname>`. `scripts/lab-ctl.sh` finds a lab's guests by that tag, and VMID order is
   boot order.
+- Observability collector: `obs`'s address lives in the inventory (group `observability`).
+  The `lab_gateway` nftables template, `terraform/observability.tf` (VM and
+  `proxmox_metrics_server`) and the `observability` role all read it.
+  `observability.collector` ports in `lab.yml` must match the role's receivers (asserted).
+  The nodes reach the lab nets through `pve_base` routes derived from `gateway.nets`.
 - OVA path: `ova-unpack.sh` extracts into `artifacts/ova/<name>/` (git-ignored) and prints
   the `lab.yml` entry. `vms.tf` uploads each disk as `proxmox_virtual_environment_file`
   (`content_type = "import"`) and attaches it with `disk.import_from`.
@@ -103,6 +108,11 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   `mapfile` and associative arrays. Empty arrays under `set -u` need
   `${a[@]+"${a[@]}"}`. `lab-ctl.sh` keeps action calls inside `|| rc=1`, so check errors
   explicitly there; `set -e` is suspended in that context.
+- **Debian 13 specifics** for `obs`. `/tmp` is a RAM tmpfs, so Loki's data lives in
+  `/var/lib/loki`. The packaged Prometheus (2.53.3) has no OTLP receiver, so Alloy remote-writes.
+  Alloy's unit has no capabilities, so binding 514 needs a drop-in.
+- **In this Ansible, Jinja string literals don't process backslash escapes**, so avoid escaping
+  logic in templates (the Grafana password is charset-restricted instead).
 - **macOS `sed`** has no `\|` alternation, and `ls` may be aliased (use `command ls`).
 - Hardware ceiling: N100/N150 and the S12 Pro are **16 GB max** (Intel ARK, Beelink
   staff). Plan guests within it. The S13 Pro has no official spec page.

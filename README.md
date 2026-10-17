@@ -22,6 +22,7 @@ One YAML file describes the lab; OpenTofu and Ansible build it; `make` drives ev
 - **One source of truth.** [`config/lab.yml`](config/lab.yml) declares the segments, the gateway and every lab's VMs. [`ansible/inventory/hosts.yml`](ansible/inventory/hosts.yml) holds every address. OpenTofu and Ansible both read them, so nothing is written twice.
 - **VirtualBox OVAs in, Proxmox VMs out.** `make unpack` verifies an OVA against its manifest and reads its OVF. Then OpenTofu uploads the disks and builds the VM: SATA disks and an e1000 NIC, the hardware VirtualBox guests already have drivers for.
 - **Isolated lab segments across nodes.** An SDN zone (VLAN or VXLAN) with `pam`, `devops` and `cyber` vnets. A tiny gateway container gives them DHCP and DNS and enforces a firewall policy. `cyber` is never routed.
+- **Logs and metrics in 4 GB.** WALLIX's audit trail goes over syslog into Loki, and Proxmox's own metrics over OTLP into Prometheus, with Grafana on top. The gateway lets the lab nets reach only the collector's ports.
 - **Remote by default.** `make lab` starts, stops, snapshots and rolls back whole labs over the Proxmox API. Tailscale reaches the nodes from anywhere without opening a port.
 - **No secrets in git.** The API token lives in `~/.config/lab/` (0600). The Tailscale key is read from the environment. OVAs and disks are git-ignored.
 - **Checked, not guessed.** Specs and commands come from Beelink, Intel, Proxmox, Tailscale and provider sources, linked in the docs. Anything unverified (like the S13 Pro's specs) is marked as unverified.
@@ -72,6 +73,7 @@ flowchart TB
 | Cluster prerequisites | Ansible `pve_iac` | `terraform@pve`, its role and API token, `import` storage |
 | Proxmox objects | OpenTofu | SDN zone and vnets, pools, gateway container, disk uploads, VMs |
 | Inside the gateway | Ansible `lab_gateway` | DHCP/DNS (dnsmasq), routing policy (nftables) |
+| Observability | OpenTofu + Ansible `observability` | the `obs` VM: Alloy, Loki, Prometheus, Grafana; Proxmox's metric push |
 | Remote access | Ansible `tailscale` | tailnet membership, subnet routes |
 | Operations | `scripts/` | OVA unpacking, lab power and snapshots |
 
@@ -92,6 +94,7 @@ make unpack OVA=~/path/to/<wallix-appliance>.ova   # each OVA   (docs/06)
 make init && make plan         # read the plan
 make apply                     # SDN, pools, gateway, WALLIX VMs
 make gateway                   # DHCP + firewall inside the gateway
+export GRAFANA_ADMIN_PASSWORD=… && make obs   # logs + metrics + Grafana  (docs/10)
 make lab LAB=wallix CMD=start
 ```
 
@@ -144,6 +147,7 @@ Details are in [docs/06](docs/06-wallix-lab.md) and [docs/08](docs/08-roadmap.md
 | 07 | [Remote management](docs/07-remote-management.md) | LAN, Tailscale, TLS trust, Wake-on-LAN, hardening |
 | 08 | [Roadmap](docs/08-roadmap.md) | phases, mapped to the certification plan |
 | 09 | [NAS and control node](docs/09-nas-and-control-node.md) | creating the DS224+ volume, share and NFS rules; backups; the QDevice; the Mac mini as control node |
+| 10 | [Observability](docs/10-observability.md) | SIEM-lite in 4 GB: WALLIX syslog and Proxmox metrics into Loki, Prometheus and Grafana |
 
 ## 📁 Repository map
 

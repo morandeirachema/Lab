@@ -36,13 +36,14 @@ your router's DHCP pool.
 | `pam` | 10 | `10.10.10.0/24` | `.1`, leases `.100–.199` | no | phase 1 |
 | `devops` | 20 | `10.10.20.0/24` | add to `gateway.nets` | planned yes | phase 2 |
 | `cyber` | 30 | `10.10.30.0/24` | none: the gateway never routes it | never | phase 3 |
+| `obs` | 40 | `10.10.40.0/24` | `.1`; the `obs` VM is static at `.10` | yes (packages) | in code ([10](10-observability.md)) |
 
 **VMID ranges.** OpenTofu doesn't enforce these; they are a convention so a VMID tells
 you what it is.
 
 | Range | Use |
 |---|---|
-| 100–199 | infrastructure (110 = `labgw`) |
+| 100–199 | infrastructure (110 = `labgw`, 120 = `obs`) |
 | 1000–1999 | PAM lab |
 | 2000–2999 | DevOps lab |
 | 3000–3999 | cyber range |
@@ -97,6 +98,7 @@ vnets, in `gateway.nets` order. It runs dnsmasq (DHCP and DNS) and nftables
 | lab net → internet | only if `internet: true`, and never to private ranges |
 | lab net → home LAN | dropped |
 | lab net → another lab net | dropped |
+| any other lab net → `obs` VM | only the collector ports: syslog 514 tcp/udp, OTLP 4318 tcp |
 | anything → `cyber` | not routed at all |
 | DHCP on the home LAN | never (`no-dhcp-interface=eth0`) |
 
