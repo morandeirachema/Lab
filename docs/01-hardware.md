@@ -63,9 +63,8 @@ Upgrading RAM is not a plan.
 | Left for guests | ~12–13 GB |
 
 Today that is about 25 GB for guests across two nodes. With `pve3` it becomes about
-37 GB. The PAM lab as declared (PAMv1, 2 GB) plus the gateway (256 MB) uses very
-little of it. Before adding Windows guests, budget them in `config/lab.yml`: Windows
-Server is the expensive part.
+37 GB. The gateway takes 256 MB. Size the WALLIX lab's guests in `config/lab.yml` against this
+budget; Windows Server guests are the expensive part.
 
 ## BIOS settings (S12 Pro)
 

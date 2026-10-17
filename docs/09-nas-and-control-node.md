@@ -128,11 +128,11 @@ Put that path, normally `/volume1/proxmox`, in `nas.export` in `config/lab.yml`,
 `nas.enabled: true`, then:
 
 ```sh
-make plan    # + proxmox_storage_nfs.nas, + proxmox_backup_job.lab["pam"]
+make plan    # + proxmox_storage_nfs.nas, + proxmox_backup_job.lab["wallix"]
 make apply
 ```
 
-Every node then shows the `nas` storage, and the PAM pool is backed up every Saturday.
+Every node then shows the `nas` storage, and the `wallix` pool is backed up every Saturday.
 
 ## The third quorum vote (QDevice)
 
@@ -198,7 +198,7 @@ for example a Time Machine destination on the NAS if you set one up.
 ### From the laptop
 
 ```sh
-ssh macmini 'cd ~/code/Lab && make lab LAB=pam CMD=status'
+ssh macmini 'cd ~/code/Lab && make lab LAB=wallix CMD=status'
 ```
 
 Or run `make lab` on the laptop directly, with a copy of the token. `lab-ctl.sh` only

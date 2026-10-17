@@ -2,7 +2,7 @@
 # Order for a fresh cluster: nodes -> (form the cluster) -> iac -> apply -> gateway
 
 TOFU       ?= tofu
-LAB        ?= pam
+LAB        ?= wallix
 CMD        ?= status
 NAME       ?=
 TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
@@ -53,5 +53,5 @@ unpack: ## Unpack and verify an OVA for import: make unpack OVA=~/path/appliance
 	@test -n "$(OVA)" || { echo "usage: make unpack OVA=path/to/appliance.ova"; exit 1; }
 	scripts/ova-unpack.sh "$(OVA)"
 
-lab: ## Operate a lab: make lab LAB=pam CMD=status|start|stop|snapshots|snapshot|rollback NAME=...
+lab: ## Operate a lab: make lab LAB=wallix CMD=status|start|stop|snapshots|snapshot|rollback NAME=...
 	scripts/lab-ctl.sh $(LAB) $(CMD) $(NAME)

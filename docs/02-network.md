@@ -17,7 +17,7 @@ flowchart LR
     cyber["cyber · tag 30<br/>never routed"]
   end
   labgw --- pam
-  pam --- pamv1["pamv1 (PAMv1 appliance)"]
+  pam --- wallix["WALLIX lab"]
 ```
 
 ## Address plan
@@ -134,6 +134,6 @@ echo "nameserver 192.168.1.20" | sudo tee /etc/resolver/lab.home.arpa
 ```
 
 Guests on `pam` get the gateway as their default route by DHCP, so replies come back
-without NAT and PAMv1's audit log sees your Mac's real address. Guests with a static IP
+without NAT, and the WALLIX audit trail sees your Mac's real address. Guests with a static IP
 and no default route need `gateway.snat_from_lan: true` instead. Then the LAN traffic
 they receive appears to come from the gateway.

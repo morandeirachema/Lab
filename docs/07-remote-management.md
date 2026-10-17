@@ -6,7 +6,7 @@ Four layers, from everyday use down to "the node is off".
 
 | Interface | What for |
 |---|---|
-| Web UI: `https://<node>:8006` | Consoles (e.g. reading PAMv1's admin key), a quick look at state |
+| Web UI: `https://<node>:8006` | Consoles (e.g. a guest's first boot), a quick look at state |
 | SSH with keys (`ssh pve1`, see [03-install.md](03-install.md#first-contact-from-the-mac)) | Ansible, one-off commands |
 | API token (`terraform@pve!provider`) | OpenTofu (`make plan/apply`) and `make lab`, without logging in anywhere |
 
@@ -14,9 +14,9 @@ Four layers, from everyday use down to "the node is off".
 so no repo copy or SSH session on a node is involved:
 
 ```sh
-make lab LAB=pam CMD=status
-make lab LAB=pam CMD=start
-make lab LAB=pam CMD=snapshot NAME=before-exercise
+make lab LAB=wallix CMD=status
+make lab LAB=wallix CMD=start
+make lab LAB=wallix CMD=snapshot NAME=before-exercise
 ```
 
 ## 2. Away from home: Tailscale

@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Infrastructure as code for a Proxmox VE 9 homelab: two Beelink Mini S12 Pro nodes
 (`pve1`, `pve2`), an S13 Pro (`pve3`) later, a Synology DS224+ and a Mac mini as control
-node. It runs a PAM lab first (the owner's PAMv1 appliance, imported from a VirtualBox
-OVA), with DevOps and cyber-range labs planned. Read `README.md` and `docs/05-iac-workflow.md`
+node. Its first lab is a fully WALLIX PAM lab (lab/pool `wallix` on the `pam` segment),
+built from the owner's WALLIX VirtualBox OVAs, for the WCE-P certification. DevOps and
+cyber-range labs are planned. Read `README.md` and `docs/05-iac-workflow.md`
 for the full picture.
 
 ## Commands

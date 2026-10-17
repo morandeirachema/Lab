@@ -24,7 +24,7 @@ against the provider's real schema, without touching the cluster.
 | BIOS settings, Proxmox install | Nothing to run code on yet |
 | `pvecm create` / `pvecm add` | Interactive (root password, fingerprint), and done once |
 | Approving Tailscale routes | Done in the Tailscale admin console, by design |
-| Building the PAMv1 OVA | Done in the PAMv1 repo (`deploy/ova/build.sh`) |
+| Getting the WALLIX OVAs | They come from WALLIX; `make unpack` takes them from there |
 | Power state and snapshots | Day-to-day operations, not desired state: `make lab` |
 
 ## Order, for a fresh cluster
@@ -34,13 +34,13 @@ make check                       # offline: everything validates
 make ping && make nodes          # 03-install.md: baseline every node
 # form the cluster by hand:      # 04-cluster.md
 make iac                         # API user, role, token → ~/.config/lab/proxmox-api-token
-make unpack OVA=~/.cache/pamv1-ova/pamv1-appliance-13.6.0.ova   # 06-pam-lab.md
+make unpack OVA=~/path/to/<wallix-appliance>.ova      # each OVA: 06-wallix-lab.md
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars # add your SSH public key
 make init                        # OpenTofu providers, pinned by the lock file
 make plan                        # read it
-make apply                       # SDN, pools, gateway container, PAM VM
+make apply                       # SDN, pools, gateway container, WALLIX VMs
 make gateway                     # dnsmasq + nftables inside the gateway
-make lab LAB=pam CMD=start
+make lab LAB=wallix CMD=start
 ```
 
 To change anything later, edit `config/lab.yml` and run `make plan`, then `make apply`.

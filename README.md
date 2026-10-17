@@ -50,8 +50,8 @@ flowchart TB
       cyber["cyber · never routed"]
     end
     labgw["labgw<br/>dnsmasq + nftables"]
-    pamv1["pamv1<br/>PAMv1 appliance"]
-    labgw --- pam --- pamv1
+    wallix["WALLIX lab<br/>(from its OVAs)"]
+    labgw --- pam --- wallix
   end
 
   tofu -- "API token" --> cluster
@@ -88,21 +88,21 @@ Then, for a fresh cluster ([full walkthrough](docs/05-iac-workflow.md)):
 make ping && make nodes        # baseline every node                (docs/03)
 #   form the cluster by hand:  pvecm create / pvecm add             (docs/04)
 make iac                       # API user, role, token → ~/.config/lab/
-make unpack OVA=~/.cache/pamv1-ova/pamv1-appliance-13.6.0.ova      (docs/06)
+make unpack OVA=~/path/to/<wallix-appliance>.ova   # each OVA   (docs/06)
 make init && make plan         # read the plan
-make apply                     # SDN, pools, gateway, PAM VM
+make apply                     # SDN, pools, gateway, WALLIX VMs
 make gateway                   # DHCP + firewall inside the gateway
-make lab LAB=pam CMD=start
+make lab LAB=wallix CMD=start
 ```
 
 ## 🎛️ Day to day
 
 | You want to… | Run |
 |---|---|
-| See a lab | `make lab LAB=pam CMD=status` |
-| Start / stop it (boot order = VMID order) | `make lab LAB=pam CMD=start` · `CMD=stop` |
-| Save a clean state | `make lab LAB=pam CMD=snapshot NAME=baseline` |
-| Reset after an exercise | `make lab LAB=pam CMD=rollback NAME=baseline` |
+| See a lab | `make lab LAB=wallix CMD=status` |
+| Start / stop it (boot order = VMID order) | `make lab LAB=wallix CMD=start` · `CMD=stop` |
+| Save a clean state | `make lab LAB=wallix CMD=snapshot NAME=baseline` |
+| Reset after an exercise | `make lab LAB=wallix CMD=rollback NAME=baseline` |
 | Add a VM from an OVA | `make unpack OVA=…`, paste the entry into `config/lab.yml`, `make apply` |
 | Change anything | edit `config/lab.yml`, then `make plan` and `make apply` |
 | Reach it from outside home | `make remote` (Tailscale), see [docs/07](docs/07-remote-management.md) |
@@ -125,11 +125,11 @@ Sources and BIOS settings are in [docs/01](docs/01-hardware.md).
 
 | Lab | Segment | Guests | Status | Certifications it serves |
 |---|---|---|---|---|
-| **PAM** | `pam` (no internet) | PAMv1 appliance; targets and vendor appliances next | 🟢 in code | WALLIX WCE-P, CyberArk Defender / Sentry |
+| **WALLIX** | `pam` (no internet) | the WALLIX OVAs, imported with `make unpack` | 🟢 in code | WALLIX WCE-P |
 | **DevOps** | `devops` (internet) | Kubernetes from cloud images, a Git forge with CI, monitoring | 🟡 planned | CKA, CKS |
 | **Cyber range** | `cyber` (never routed) | attacker and vulnerable OVAs | 🟡 planned | CEH, OSCP practice |
 
-Details are in [docs/06](docs/06-pam-lab.md) and [docs/08](docs/08-roadmap.md).
+Details are in [docs/06](docs/06-wallix-lab.md) and [docs/08](docs/08-roadmap.md).
 
 ## 📚 Documentation
 
@@ -140,7 +140,7 @@ Details are in [docs/06](docs/06-pam-lab.md) and [docs/08](docs/08-roadmap.md).
 | 03 | [Install](docs/03-install.md) | Proxmox VE on each node, first contact from the Mac |
 | 04 | [Cluster](docs/04-cluster.md) | forming it, two-node quorum, adding pve3 |
 | 05 | [IaC workflow](docs/05-iac-workflow.md) | what declares what, the order, state and secrets, known limits |
-| 06 | [PAM lab](docs/06-pam-lab.md) | PAMv1 from build to reset |
+| 06 | [WALLIX lab](docs/06-wallix-lab.md) | from the WALLIX OVAs to a baseline you can reset |
 | 07 | [Remote management](docs/07-remote-management.md) | LAN, Tailscale, TLS trust, Wake-on-LAN, hardening |
 | 08 | [Roadmap](docs/08-roadmap.md) | phases, mapped to the certification plan |
 | 09 | [NAS and control node](docs/09-nas-and-control-node.md) | creating the DS224+ volume, share and NFS rules; backups; the QDevice; the Mac mini as control node |

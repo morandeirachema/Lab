@@ -12,14 +12,11 @@ before adding it.
 Proxmox on two S12 Pro nodes, the `lab` SDN zone, pools, the lab gateway, remote
 management and CI. See docs 01–07.
 
-## Phase 1: PAM lab (in code now: PAMv1)
+## Phase 1: WALLIX lab (in code now)
 
-| Next | Why | Certification |
-|---|---|---|
-| **Targets** under `labs.pam.vms`: a Linux SSH target, an RDP target | A PAM lab needs something to broker sessions to | All PAM tracks |
-| A Windows domain controller (AD) | Most PAM exercises assume AD accounts | All PAM tracks |
-| **WALLIX Bastion**, if you have an image of it (training or trial). An OVA goes through `make unpack` | WCE-P is expected before November 2026 in the plan; WCP-P is held | WALLIX WCE-P |
-| CyberArk components, if you have images | | CyberArk Defender / Sentry |
+A fully WALLIX PAM lab on the `pam` segment, from the WALLIX OVAs
+([06-wallix-lab.md](06-wallix-lab.md)). → **WALLIX WCE-P**, expected before November 2026 in
+the plan (WCP-P is held).
 
 Windows guests are the costly part, at roughly 2–4 GB each. Plan two to three of them
 across the two nodes.
@@ -32,8 +29,6 @@ across the two nodes.
   cloud-init, so they are built from code and not from an OVA.
 - A three-VM Kubernetes cluster (kubeadm), one VM per node once `pve3` exists. → **CKA**,
   then **CKS** (hardening, policies, runtime security).
-- PAMv1 on that cluster, with its own `deploy/helm` chart: the same product, deployed the
-  DevOps way.
 - A Git forge with CI runners, and Prometheus/Grafana for the nodes and guests.
 
 Rough size: 3 × 4 GB for Kubernetes, plus 2–4 GB for the forge and monitoring. This
