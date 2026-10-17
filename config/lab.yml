@@ -83,8 +83,7 @@ observability:
   memory: 4096                  # the ceiling for the whole stack
   cores: 2
   disk_gb: 32
-  vnet: obs
-  address: 10.10.40.10/24
+  vnet: obs                     # its address is the obs host in ansible/inventory/hosts.yml
   # What the lab nets may send it through the gateway, and nothing else.
   collector:
     tcp: [514, 4318]            # syslog, OTLP over HTTP

@@ -42,7 +42,7 @@ table inet filter {
 {% endfor %}
 {% if lab.observability is defined and lab.observability.enabled | default(false) %}
 {%   set obs = lab.observability %}
-{%   set obs_ip = obs.address.split('/')[0] %}
+{%   set obs_ip = hostvars['obs'].ansible_host %}
     # every other lab net -> the observability collector ({{ obs_ip }}): logs and metrics only
 {%   for net in lab.gateway.nets %}
 {%     if net.vnet != obs.vnet %}
