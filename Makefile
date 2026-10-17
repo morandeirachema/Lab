@@ -11,7 +11,7 @@ TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
 export PROXMOX_VE_INSECURE ?= true
 
 .DEFAULT_GOAL := help
-.PHONY: help check ping nodes iac plan apply gateway remote unpack lab token
+.PHONY: help check ping nodes iac init plan apply gateway remote unpack lab token
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
@@ -30,6 +30,9 @@ nodes: ## Baseline every node: repos, upgrades, tools, ZFS ARC, SSH (one node at
 
 iac: ## Once per cluster: terraform@pve user, role and API token, import storage
 	cd ansible && ansible-playbook playbooks/pve-iac.yml
+
+init: ## Initialise OpenTofu (providers from the lock file)
+	cd terraform && $(TOFU) init -input=false
 
 token:
 	@test -r $(TOKEN_FILE) || { echo "No API token at $(TOKEN_FILE): run 'make iac' first."; exit 1; }
