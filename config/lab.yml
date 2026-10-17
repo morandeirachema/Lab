@@ -9,7 +9,7 @@ lan:
   bridge: vmbr0             # the node bridge on the home LAN
   cidr: 192.168.1.0/24      # placeholder
   gateway: 192.168.1.1      # placeholder
-  dns: 192.168.1.1          # placeholder
+  dns: 192.168.1.219        # Pi-hole on the DS224+ (upstream for the lab gateway)
 
 storage:
   vm: local-zfs             # VM disks and container root filesystems (local-lvm on ext4 installs)

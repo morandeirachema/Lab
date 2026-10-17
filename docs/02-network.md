@@ -27,7 +27,7 @@ your router's DHCP pool.
 
 | What | Address | Where it is set |
 |---|---|---|
-| Home LAN | `192.168.1.0/24`, gateway and DNS `192.168.1.1` | `config/lab.yml` → `lan` |
+| Home LAN | `192.168.1.0/24`, gateway `192.168.1.1`, DNS = Pi-hole on the NAS `192.168.1.219` | `config/lab.yml` → `lan` |
 | `pve1`, `pve2`, `pve3` | `.11`, `.12`, `.13` | `ansible/inventory/hosts.yml` |
 | `labgw` (LAN side) | `.20` | `ansible/inventory/hosts.yml` |
 
@@ -123,7 +123,10 @@ The lab nets sit behind `labgw`, so your Mac needs a route to them. Pick one:
    networksetup -getadditionalroutes "Wi-Fi"
    ```
 
-To resolve lab names (`pamv1.lab.home.arpa`) from the Mac, send that domain to the gateway:
+To resolve lab names (`<guest>.lab.home.arpa`) from every device, add one conditional
+forwarding entry to Pi-hole, the LAN's DNS on the NAS
+([09-nas-and-control-node.md](09-nas-and-control-node.md#5-lab-names-through-pi-hole)).
+For a single Mac without touching Pi-hole, a per-domain resolver works too:
 
 ```sh
 sudo mkdir -p /etc/resolver

@@ -30,41 +30,31 @@ updated Aug 6, 2026:
 
 DSM screens move between releases. Each step below links the Synology help page it comes from.
 
-### 1. Create the storage pool and volume
+### 1. Use the existing volume; don't create a new pool
 
-([Create a Storage Pool](https://kb.synology.com/en-global/DSM/help/DSM/StorageManager/storage_pool_create_storage_pool?version=7) ·
-[Create a Volume](https://kb.synology.com/en-global/DSM/help/DSM/StorageManager/volume_create_volume?version=7) ·
-[Choose a RAID Type](https://kb.synology.com/en-global/DSM/help/DSM/StorageManager/storage_pool_what_is_raid?version=7))
+The NAS already runs **Pi-hole**, so it already has a storage pool and a volume. Containers
+live on one. **Don't create, remove or rebuild a storage pool.** Synology warns that
+creating one deletes all data on the drives it uses, and removing one deletes "its volumes
+and all shared folders and packages on the volumes", Pi-hole included.
 
-> [!WARNING]
-> Creating a storage pool **erases the drives**. In Synology's words, "all existing data will
-> be deleted during the creation process". Back up anything on them first.
+Check what's there in **Storage Manager → Storage**:
 
-1. **Storage Manager → HDD/SSD**: both drives should show *Healthy*.
-2. **Storage Manager → Storage**:
-   - First pool on this NAS: click **Create Now**, and one wizard creates the pool and the volume.
-   - Otherwise: **Create → Create Storage Pool**.
-3. **RAID type:** **SHR** (Synology Hybrid RAID) across both drives. With two or more drives,
-   SHR tolerates one drive failure; Synology recommends it for beginners. With two equal
-   drives, **RAID 1** is the classic equivalent. Avoid **RAID 0**, **JBOD** and **Basic**: none
-   survives a drive failure, and this NAS will hold the lab's backups.
-4. **Select both drives**, click *Next*, and finish the wizard.
-5. **Volume** (part of *Create Now*, or later **Create → Create Volume**):
-   - Choose the pool and click **Max** to allocate all of it.
-   - **File system: Btrfs.** Synology recommends it (snapshots, replication, data integrity).
-     Btrfs is also required later if the NAS ever hosts a VM: Synology states that "virtual
-     machine data can be stored only on Btrfs volumes". The file system cannot be changed
-     after creation.
-   - Encryption is optional. If you turn it on, keep the key safe, because the backups
-     will depend on it.
-   - Click **Apply**.
+- **A pool across both drives (SHR or RAID 1):** nothing to do. Go to step 2.
+- **A Basic pool on one drive, with the second bay empty:** that pool doesn't survive a
+  drive failure, and the NAS will hold backups. Synology can convert it without losing data
+  ([Change the RAID Type of a Storage Pool](https://kb.synology.com/en-global/DSM/help/DSM/StorageManager/storage_pool_change_raid_type?version=7)).
+  Basic → RAID 1 needs one more drive, at least as large as the current one. With the pool
+  *Healthy*, open the pool's menu → **Change RAID Type** → RAID 1, select the new drive,
+  then **Apply**. The pool shows *Changing RAID type* until it's done.
+
+The volume's file system is fixed, and Btrfs or ext4 both work for NFS.
 
 ### 2. Create the shared folder
 
 ([Create a Shared Folder](https://kb.synology.com/en-global/DSM/help/DSM/AdminCenter/file_share_create?version=7))
 
 1. **Control Panel → Shared Folder → Create → Create Shared Folder**.
-2. Name `proxmox`. For Location, choose the volume you just created.
+2. Name `proxmox`. For Location, choose the existing volume.
 3. **Leave "Enable Recycle Bin" off** for this folder. Deleted files go to `#recycle`, so
    every backup Proxmox prunes would pile up there.
 4. Finish the wizard. Skip user permissions: the nodes reach this folder by NFS, not as DSM users.
@@ -95,7 +85,37 @@ Create one rule per node: `192.168.1.11`, `192.168.1.12`, and `192.168.1.13` whe
 If the DSM firewall is on, allow the nodes for the NFS file service as well. Synology lists
 it as "Mac/Linux file server".
 
-### 5. Point the code at it
+### 5. Lab names through Pi-hole
+
+Pi-hole is the LAN's DNS (`lan.dns` in `config/lab.yml`). One conditional-forwarding entry
+sends lab names, and reverse lookups for the lab subnet, to the lab gateway. Every device
+on the LAN then resolves `<guest>.lab.home.arpa` names, with no `/etc/resolver` file on each
+Mac. Pi-hole v6 calls the setting `dns.revServers`. Its
+[documented format](https://docs.pi-hole.net/ftldns/configfile/) is
+`"<enabled>,<ip-address>/<prefix-len>,<server>[#<port>][,<domain>]"`:
+
+```sh
+# run inside the Pi-hole container
+pihole-FTL --config dns.revServers '[ "true,10.10.10.0/24,192.168.1.20,lab.home.arpa" ]'
+```
+
+Or set it in the container's environment, the form the Pi-hole docs give for Docker
+Compose:
+
+```yaml
+environment:
+  FTLCONF_dns_revServers: "true,10.10.10.0/24,192.168.1.20,lab.home.arpa"
+```
+
+The value replaces the whole list. If you already have an entry (for the router, say),
+include it in the same array. There's no loop: the gateway answers `lab.home.arpa` and
+private reverse lookups itself (`local=/lab.home.arpa/`, `bogus-priv`), and forwards only
+other names to Pi-hole.
+
+The NAS now also carries the LAN's DNS. Give each Proxmox node a second DNS server (the
+router), so `apt` still resolves while the NAS restarts for a DSM update.
+
+### 6. Point the code at it
 
 From any node, list what the NAS exports. The Proxmox docs give the export "as listed by
 `pvesm nfsscan`":

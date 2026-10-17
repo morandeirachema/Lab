@@ -28,7 +28,8 @@ make check            # everything validates offline before you touch a node
 | Target disk filesystem | **ZFS (RAID0)** on the single disk | Gives `local-zfs`, which `config/lab.yml` uses. It also gives snapshots and, later, replication between nodes |
 | Hostname (FQDN) | `pve1.home.arpa`, `pve2.home.arpa`, … | The short name must match `ansible/inventory/hosts.yml` |
 | IP address | the static address from the inventory | Outside your router's DHCP pool |
-| Gateway / DNS | your router | Same as `lan` in `config/lab.yml` |
+| Gateway | your router | Same as `lan.gateway` in `config/lab.yml` |
+| DNS | Pi-hole on the NAS, `192.168.1.219`; add the router as a second server afterwards | Same as `lan.dns`; the second server covers NAS restarts |
 
 If you install on ext4/LVM instead, the VM storage is `local-lvm`: set `storage.vm` in
 `config/lab.yml` to match. Every node must use the same layout.
