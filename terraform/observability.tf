@@ -114,10 +114,11 @@ resource "proxmox_virtual_environment_vm" "obs" {
 resource "proxmox_metrics_server" "obs" {
   count = local.obs_enabled ? 1 : 0
 
-  name                = "obs"
-  type                = "opentelemetry"
-  server              = local.obs_ip
-  port                = 4318
-  opentelemetry_proto = "http"
-  opentelemetry_path  = "/v1/metrics"
+  name                  = "obs"
+  type                  = "opentelemetry"
+  server                = local.obs_ip
+  port                  = local.obs.otlp_port
+  opentelemetry_proto   = "http"
+  opentelemetry_path    = "/v1/metrics"
+  opentelemetry_timeout = 1 # don't let an unreachable obs hold up the push for long
 }

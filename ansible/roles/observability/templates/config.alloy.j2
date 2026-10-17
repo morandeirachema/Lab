@@ -15,17 +15,29 @@ loki.relabel "syslog" {
 
 loki.source.syslog "lab" {
   listener {
-    address       = "0.0.0.0:{{ observability_syslog_port }}"
+    address       = "0.0.0.0:{{ lab.observability.syslog_port | int }}"
     protocol      = "tcp"
     syslog_format = "{{ observability_syslog_format }}"
     labels        = { source = "syslog", protocol = "tcp" }
+{% if observability_syslog_format == 'rfc5424' %}
+    // Keep the whole RFC 5424 record (structured data included) as the log line,
+    // and don't drop records whose MSG part is empty.
+    use_rfc5424_message     = true
+    rfc5424_allow_empty_msg = true
+{% endif %}
   }
 
   listener {
-    address       = "0.0.0.0:{{ observability_syslog_port }}"
+    address       = "0.0.0.0:{{ lab.observability.syslog_port | int }}"
     protocol      = "udp"
     syslog_format = "{{ observability_syslog_format }}"
     labels        = { source = "syslog", protocol = "udp" }
+{% if observability_syslog_format == 'rfc5424' %}
+    // Keep the whole RFC 5424 record (structured data included) as the log line,
+    // and don't drop records whose MSG part is empty.
+    use_rfc5424_message     = true
+    rfc5424_allow_empty_msg = true
+{% endif %}
   }
 
   relabel_rules = loki.relabel.syslog.rules
@@ -40,7 +52,7 @@ loki.write "local" {
 
 otelcol.receiver.otlp "proxmox" {
   http {
-    endpoint = "0.0.0.0:{{ observability_otlp_http_port }}"
+    endpoint = "0.0.0.0:{{ lab.observability.otlp_port | int }}"
   }
 
   output {

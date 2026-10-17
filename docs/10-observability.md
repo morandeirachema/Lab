@@ -54,7 +54,8 @@ flowchart LR
 ```
 
 - **The gateway lets the lab nets reach only the collector**: `10.10.40.10` on syslog
-  514/tcp+udp and OTLP 4318/tcp, declared in `observability.collector`. Lab nets still can't
+  514/tcp+udp and OTLP 4318/tcp (`observability.syslog_port` / `otlp_port`). The Proxmox nodes may
+  push metrics whatever `gateway.mgmt_cidr` allows. Lab nets still can't
   reach each other or the LAN. `cyber` is never routed.
 - **Proxmox pushes its metrics** through its built-in *External Metric Server*
   (OpenTelemetry). OpenTofu declares it (`proxmox_metrics_server`), and the nodes reach
@@ -62,7 +63,12 @@ flowchart LR
 - **Why remote write and not OTLP into Prometheus:** Debian 13's Prometheus (2.53.3) ships
   with its OTLP receiver patched out. Alloy turns OTLP into remote write, which Prometheus
   accepts with `--web.enable-remote-write-receiver`.
-- **Retention:** 14 days for both. Prometheus also stops at 10 GB.
+- **Retention:** 14 days for both. Prometheus also stops at 10 GB. Loki has no size limit, so a
+  guest flooding syslog can fill the 32 GB disk before 14 days pass: add a Grafana alert on
+  the VM's disk usage.
+- **Only the collector is on the network:** Loki and Prometheus listen on `127.0.0.1`. Loki
+  runs without auth, with its delete API on, so nothing outside the VM may reach it. Grafana
+  (3000) is the only UI port.
 - **Security updates:** `obs` and `labgw` install Debian's security updates unattended
   (`debian_autoupdates`). Grafana's repository is not in the unattended origins, so Grafana,
   Loki and Alloy change only when you upgrade them yourself (`apt upgrade` on `obs`).
@@ -98,7 +104,7 @@ and **System → Syslog**. Point them at:
 | Server | `10.10.40.10` |
 | Port | `514` |
 | Protocol | TCP (or UDP) |
-| Format | RFC 5424. WALLIX's own Splunk add-on documents "RFC 5424 or legacy". For legacy, set `observability_syslog_format: rfc3164` |
+| Format | Pick one in WALLIX's SIEM settings (its 12.0.1 release notes mention a log format setting) and make Alloy match: RFC 5424 is the default here (`observability_syslog_format: rfc5424`), legacy BSD syslog is `rfc3164`. The Splunk add-on in the WALLIX GitHub organisation documents "RFC 5424 or legacy" |
 
 The Bastion's default route must be the gateway (`10.10.10.1`), as in
 [06](06-wallix-lab.md#wallixs-own-requirements).

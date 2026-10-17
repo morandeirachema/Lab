@@ -1,12 +1,16 @@
 # {{ ansible_managed }}
 # Based on the config Loki's Debian package ships (cmd/loki/loki-local-config.yaml,
-# v3.7.8), with three changes: data under {{ observability_loki_dir }} instead of
-# /tmp/loki (RAM on Debian 13), retention as in Loki's retention docs, and the
-# optional pattern ingester and metric aggregation left out to save memory.
+# v3.7.8), with these changes: data under {{ observability_loki_dir }} instead of
+# /tmp/loki (RAM on Debian 13), retention as in Loki's retention docs, the
+# optional pattern ingester and metric aggregation left out to save memory, and
+# listening on localhost only: auth_enabled is false and retention enables the
+# delete API, so only Alloy and Grafana, on this VM, may reach Loki.
 auth_enabled: false
 
 server:
+  http_listen_address: 127.0.0.1
   http_listen_port: 3100
+  grpc_listen_address: 127.0.0.1
   grpc_listen_port: 9096
   log_level: info
 
@@ -30,7 +34,7 @@ query_range:
         max_size_mb: 100
 
 limits_config:
-  retention_period: {{ observability_retention_days * 24 }}h
+  retention_period: {{ (observability_retention_days | int) * 24 }}h
 
 # Retention needs a 24h index period.
 schema_config:

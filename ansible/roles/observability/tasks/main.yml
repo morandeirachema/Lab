@@ -1,15 +1,25 @@
 ---
 # Expects config/lab.yml loaded as `lab` (see playbooks/observability.yml).
 
-- name: The Alloy receivers match what the gateway lets in
+# Checked before anything changes: a failed check later in the run would drop the
+# restart handlers already notified, and a re-run would not restart those services.
+# The admin password lives in a root-owned file that Grafana reads through its
+# documented file provider ($__file{}). A systemd Environment= line would expose
+# it: systemd.exec(5) warns that unit environment variables are "exposed to
+# unprivileged clients via D-Bus IPC" and are "not suitable for passing secrets".
+- name: Look for Grafana's admin password file
+  ansible.builtin.stat:
+    path: /etc/grafana/admin_password
+  register: observability_grafana_pwfile
+
+- name: Require an admin password for Grafana's first run
   ansible.builtin.assert:
-    that:
-      - observability_syslog_port in lab.observability.collector.tcp
-      - observability_syslog_port in lab.observability.collector.udp
-      - observability_otlp_http_port in lab.observability.collector.tcp
+    that: >-
+      observability_grafana_pwfile.stat.exists and observability_grafana_admin_password | length == 0
+      or observability_grafana_admin_password is match('^\S{12,}$')
     fail_msg: >-
-      config/lab.yml observability.collector must allow syslog {{ observability_syslog_port }}
-      (tcp and udp) and OTLP/HTTP {{ observability_otlp_http_port }} (tcp).
+      Before the first run, export GRAFANA_ADMIN_PASSWORD (12 or more characters, no
+      spaces), so Grafana never starts with admin/admin.
 
 # --- Packages: Grafana's APT repository (grafana, loki, alloy) + Debian's prometheus
 # Repository setup as in Grafana's Debian install docs.
@@ -19,11 +29,12 @@
     state: directory
     mode: "0755"
 
-- name: Add Grafana's signing key
+- name: Add Grafana's signing key (re-checked every run, so a rotated key is picked up)
   ansible.builtin.get_url:
     url: https://apt.grafana.com/gpg-full.key
     dest: /etc/apt/keyrings/grafana.asc
     mode: "0644"
+    force: true
 
 - name: Add Grafana's repository
   ansible.builtin.copy:
@@ -57,8 +68,10 @@
 - name: Prometheus arguments
   vars:
     observability_prometheus_args:
+      # Only Alloy and Grafana, on this VM, talk to Prometheus: keep it off the network.
+      - --web.listen-address=127.0.0.1:9090
       - --web.enable-remote-write-receiver
-      - --storage.tsdb.retention.time={{ observability_retention_days }}d
+      - --storage.tsdb.retention.time={{ observability_retention_days | int }}d
       - --storage.tsdb.retention.size={{ observability_prometheus_retention_size }}
   ansible.builtin.copy:
     dest: /etc/default/prometheus
@@ -101,24 +114,6 @@
     dest: /etc/grafana/provisioning/datasources/lab.yaml
     mode: "0644"
   notify: Restart grafana
-
-# The admin password lives in a root-owned file that Grafana reads through its
-# documented file provider ($__file{}). A systemd Environment= line would expose
-# it: systemd.exec(5) warns that unit environment variables are "exposed to
-# unprivileged clients via D-Bus IPC" and are "not suitable for passing secrets".
-- name: Look for Grafana's admin password file
-  ansible.builtin.stat:
-    path: /etc/grafana/admin_password
-  register: observability_grafana_pwfile
-
-- name: Require an admin password for Grafana's first run
-  ansible.builtin.assert:
-    that: >-
-      observability_grafana_pwfile.stat.exists and observability_grafana_admin_password | length == 0
-      or observability_grafana_admin_password is match('^\S{12,}$')
-    fail_msg: >-
-      Before the first run, export GRAFANA_ADMIN_PASSWORD (12 or more characters, no
-      spaces), so Grafana never starts with admin/admin.
 
 - name: Grafana admin password file (root:grafana 0640)
   ansible.builtin.copy:

@@ -84,10 +84,10 @@ observability:
   cores: 2
   disk_gb: 32
   vnet: obs                     # its address is the obs host in ansible/inventory/hosts.yml
-  # What the lab nets may send it through the gateway, and nothing else.
-  collector:
-    tcp: [514, 4318]            # syslog, OTLP over HTTP
-    udp: [514]                  # syslog
+  # The collector ports: Alloy listens on them, the gateway lets the lab nets
+  # reach only these, and Proxmox's metric server pushes to otlp_port.
+  syslog_port: 514              # TCP and UDP
+  otlp_port: 4318               # OTLP over HTTP
 
 # Guests per lab. VMID order is boot order for scripts/lab-ctl.sh.
 # Each entry comes from scripts/ova-unpack.sh (make unpack OVA=...), which

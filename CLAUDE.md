@@ -75,7 +75,8 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
 - Observability collector: `obs`'s address lives in the inventory (group `observability`).
   The `lab_gateway` nftables template, `terraform/observability.tf` (VM and
   `proxmox_metrics_server`) and the `observability` role all read it.
-  `observability.collector` ports in `lab.yml` must match the role's receivers (asserted).
+  `observability.syslog_port` / `otlp_port` in `lab.yml` drive Alloy's listeners, the gateway's
+  collector rules and Proxmox's metric server port (one value, three users).
   The nodes reach the lab nets through `pve_base` routes derived from `gateway.nets`.
 - OVA path: `ova-unpack.sh` extracts into `artifacts/ova/<name>/` (git-ignored) and prints
   the `lab.yml` entry. `vms.tf` uploads each disk as `proxmox_virtual_environment_file`

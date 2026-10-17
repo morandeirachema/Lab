@@ -4,13 +4,12 @@
 observability_retention_days: 14
 observability_prometheus_retention_size: 10GB
 
-# Receivers in Alloy. They must match config/lab.yml observability.collector,
-# which is what the gateway lets the lab nets send (asserted by the role).
-observability_syslog_port: 514
-observability_otlp_http_port: 4318
+# The receivers' ports come from config/lab.yml (observability.syslog_port and
+# otlp_port), the same values the gateway and Proxmox's metric server use.
 
-# What WALLIX sends: its Splunk add-on documents "RFC 5424 or legacy".
-# Alloy's values: rfc5424 (default) or rfc3164 for legacy BSD syslog.
+# Must match what the sender is set to. WALLIX's SIEM settings have a log format
+# choice; the Splunk add-on in the WALLIX GitHub organisation documents
+# "RFC 5424 or legacy". Alloy's values: rfc5424 or rfc3164 (legacy BSD syslog).
 observability_syslog_format: rfc5424
 
 # Loki's data. The packaged config uses /tmp/loki, but /tmp is a RAM tmpfs on

@@ -46,13 +46,13 @@ table inet filter {
     # every other lab net -> the observability collector ({{ obs_ip }}): logs and metrics only
 {%   for net in lab.gateway.nets %}
 {%     if net.vnet != obs.vnet %}
-{%       if obs.collector.tcp | default([]) %}
-    iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} tcp dport { {{ obs.collector.tcp | join(', ') }} } accept
-{%       endif %}
-{%       if obs.collector.udp | default([]) %}
-    iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} udp dport { {{ obs.collector.udp | join(', ') }} } accept
-{%       endif %}
+    iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} tcp dport { {{ obs.syslog_port }}, {{ obs.otlp_port }} } accept
+    iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} udp dport {{ obs.syslog_port }} accept
 {%     endif %}
+{%   endfor %}
+    # the Proxmox nodes' metric push, whatever gateway.mgmt_cidr allows
+{%   for host in groups['proxmox'] %}
+    iifname $LAN_IF ip saddr {{ hostvars[host].ansible_host }} ip daddr {{ obs_ip }} tcp dport {{ obs.otlp_port }} accept
 {%   endfor %}
 {% endif %}
   }
