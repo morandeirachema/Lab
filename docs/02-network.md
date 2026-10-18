@@ -14,9 +14,10 @@ flowchart LR
   subgraph zone["SDN zone 'lab' (on every node)"]
     pam["pam · tag 10<br/>10.10.10.0/24"]
     devops["devops · tag 20<br/>10.10.20.0/24"]
-    cyber["cyber · tag 30<br/>never routed"]
+    cyber["cyber · tag 30<br/>10.10.30.0/24, isolated"]
   end
   labgw --- pam
+  labgw -. DHCP only .- cyber
   pam --- wallix["WALLIX lab"]
 ```
 
@@ -35,7 +36,7 @@ your router's DHCP pool.
 |---|---|---|---|---|---|
 | `pam` | 10 | `10.10.10.0/24` | `.1`, leases `.100–.199` | no | phase 1 |
 | `devops` | 20 | `10.10.20.0/24` | add to `gateway.nets` | planned yes | phase 2 |
-| `cyber` | 30 | `10.10.30.0/24` | none: the gateway never routes it | never | phase 3 |
+| `cyber` | 30 | `10.10.30.0/24` | `.1` leases `.100–.199` and nothing else (`isolated: true`) | never | in code ([11](11-cyber-range.md)) |
 | `obs` | 40 | `10.10.40.0/24` | `.1`; the `obs` VM is static at `.10` | yes (packages) | in code ([10](10-observability.md)) |
 
 **VMID ranges.** OpenTofu doesn't enforce these; they are a convention so a VMID tells

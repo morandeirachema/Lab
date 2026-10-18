@@ -11,7 +11,7 @@
 | Inside the gateway | Ansible | `ansible/roles/lab_gateway` | dnsmasq and nftables, rendered from `config/lab.yml` |
 | Observability | Ansible | `ansible/roles/observability` | Alloy, Loki, Prometheus and Grafana on the `obs` VM |
 | Remote access | Ansible | `ansible/roles/tailscale` | Tailscale on the nodes, subnet routes |
-| Operations | scripts | `scripts/lab-ctl.sh`, `scripts/ova-unpack.sh` | Power, snapshots and rollbacks over the API; unpacking an OVA for import |
+| Operations | scripts | `scripts/lab-ctl.sh`, `scripts/ova-unpack.sh`, `scripts/kali-fetch.sh` | Power, snapshots and rollbacks over the API; unpacking an OVA, or fetching Kali's signed QEMU image, for import |
 
 OpenTofu reads both YAML files, and Ansible reads `config/lab.yml`, so a value is never
 written twice. CI (`.github/workflows/check.yml`) runs `make check` on every push. It
@@ -30,6 +30,8 @@ against the provider's real schema, without touching the cluster.
 | Pi-hole's `dns.revServers` entry | One setting in an existing container on the NAS ([09](09-nas-and-control-node.md#5-lab-names-through-pi-hole)) |
 | Mac mini as control node | `pmset`, Remote Login and tools, done once on that Mac ([09](09-nas-and-control-node.md)) |
 | Accepting SSH host keys | First `ssh` to each node, `labgw` and `obs`; Ansible checks host keys and won't accept them silently |
+| Downloading target images for the range | Third-party downloads, each with its own terms; `make unpack` takes over from the file ([11](11-cyber-range.md#build-it)) |
+| Kali's first password change | Inside the guest, from the Proxmox console: the range has no path from the Mac, by design ([11](11-cyber-range.md#build-it)) |
 | Turning on `observability.metrics_push` | Proxmox refuses a metric server nobody answers, so it's created after `make obs` ([10](10-observability.md#build-it)) |
 | Pointing WALLIX at the collector | The Bastion's System → SIEM integration / Syslog pages ([10](10-observability.md#send-wallixs-logs-to-it)) |
 | Grafana alert rules and dashboards | Built in Grafana; not provisioned yet |

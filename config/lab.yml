@@ -61,8 +61,9 @@ gateway:
   domain: lab.home.arpa       # guests register as <name>.lab.home.arpa
   snat_from_lan: false        # true for guests with a static IP and no default route
   # mgmt_cidr: 192.168.1.0/24  # who may reach the lab nets (default: lan.cidr)
-  # One interface per entry, eth1, eth2... in this order. The cyber vnet is
-  # deliberately absent: the gateway never routes it.
+  # One interface per entry, eth1, eth2... in this order: add new nets at the
+  # end. isolated: true = a DHCP lease and nothing else; labgw forwards nothing
+  # to or from it (docs/02-network.md, "The gateway's policy").
   nets:
     - vnet: pam
       address: 10.10.10.1/24
@@ -71,6 +72,12 @@ gateway:
     - vnet: obs                 # the observability VM; static address, no DHCP
       address: 10.10.40.1/24
       internet: true            # package installs for the stack
+    - vnet: cyber               # the cyber range (docs/11-cyber-range.md)
+      address: 10.10.30.1/24
+      dhcp: [10.10.30.100, 10.10.30.199]
+      internet: false
+      isolated: true            # no route, no DNS, no LAN: reach its guests from the Proxmox console
+      collector: false          # true lets range guests send syslog/OTLP to obs (Alloy's two ports only)
 
 # The observability VM: Grafana Alloy, Loki, Prometheus and Grafana
 # (terraform/observability.tf builds it; ansible/roles/observability configures it).
@@ -112,4 +119,10 @@ labs:
   #       - image: artifacts/ova/<ova name>/<disk>.vmdk
   #         size_gb: <from ova-unpack>
   wallix:
+    vms: []
+  # The cyber range (CEH practice), on the isolated cyber segment, VMIDs
+  # 3000-3999. The attacker VM comes from scripts/kali-fetch.sh (make kali),
+  # targets from make unpack. Range guests are disposable: no NAS backup job,
+  # snapshots with make lab LAB=cyber instead (docs/11-cyber-range.md).
+  cyber:
     vms: []

@@ -56,7 +56,8 @@ flowchart LR
 - **The gateway lets the lab nets reach only the collector**: `10.10.40.10` on syslog
   514/tcp+udp and OTLP 4318/tcp (`observability.syslog_port` / `otlp_port`). The Proxmox nodes may
   push metrics whatever `gateway.mgmt_cidr` allows. Lab nets still can't
-  reach each other or the LAN. `cyber` is never routed.
+  reach each other or the LAN. `cyber` is isolated: it reaches the collector only with
+  `collector: true` on its net ([02](02-network.md#the-gateways-policy)).
 - **Proxmox pushes its metrics** through its built-in *External Metric Server*
   (OpenTelemetry). OpenTofu declares it (`proxmox_metrics_server`), and the nodes reach
   `10.10.40.0/24` through `labgw` (`pve_base` routes every gateway net).
