@@ -21,7 +21,7 @@ One YAML file describes the lab; OpenTofu and Ansible build it; `make` drives ev
 
 - **One source of truth.** [`config/lab.yml`](config/lab.yml) declares the segments, the gateway and every lab's VMs. [`ansible/inventory/hosts.yml`](ansible/inventory/hosts.yml) holds every address. OpenTofu and Ansible both read them, so nothing is written twice.
 - **VirtualBox OVAs in, Proxmox VMs out.** `make unpack` verifies an OVA against its manifest and reads its OVF. Then OpenTofu uploads the disks and builds the VM: SATA disks and an e1000 NIC, the hardware VirtualBox guests already have drivers for.
-- **Isolated lab segments across nodes.** An SDN zone (VLAN or VXLAN) with `pam`, `devops` and `cyber` vnets. A tiny gateway container gives them DHCP and DNS and enforces a firewall policy. `cyber` is never routed.
+- **Isolated lab segments across nodes.** An SDN zone (VLAN or VXLAN) with `pam`, `devops` and `cyber` vnets. A tiny gateway container gives them DHCP and DNS and enforces a firewall policy. `cyber` is isolated: its guests get a DHCP lease and nothing else, no route in or out.
 - **Logs and metrics in 4 GB.** WALLIX's audit trail goes over syslog into Loki, and Proxmox's own metrics over OTLP into Prometheus, with Grafana on top. The gateway lets the lab nets reach only the collector's ports.
 - **Remote by default.** `make lab` starts, stops, snapshots and rolls back whole labs over the Proxmox API. Tailscale reaches the nodes from anywhere without opening a port.
 - **No secrets in git.** The API token lives in `~/.config/lab/` (0600). The Tailscale key is read from the environment. OVAs and disks are git-ignored.
@@ -48,7 +48,7 @@ flowchart TB
     subgraph sdn["SDN zone 'lab'"]
       pam["pam · 10.10.10.0/24"]
       devops["devops · 10.10.20.0/24"]
-      cyber["cyber · never routed"]
+      cyber["cyber · 10.10.30.0/24, isolated"]
     end
     labgw["labgw<br/>dnsmasq + nftables"]
     wallix["WALLIX lab<br/>(from its OVAs)"]
@@ -132,9 +132,9 @@ Sources and BIOS settings are in [docs/01](docs/01-hardware.md).
 |---|---|---|---|---|
 | **WALLIX** | `pam` (no internet) | the WALLIX OVAs, imported with `make unpack` | 🟢 in code | WALLIX WCE-P |
 | **DevOps** | `devops` (internet) | Kubernetes from cloud images, a Git forge with CI, monitoring | 🟡 planned | CKA, CKS |
-| **Cyber range** | `cyber` (never routed) | attacker and vulnerable OVAs | 🟡 planned | CEH, OSCP practice |
+| **Cyber range** | `cyber` (isolated) | Kali from its signed QEMU image (`make kali`), vulnerable targets via `make unpack` | 🟢 in code | CEH, OSCP practice |
 
-Details are in [docs/06](docs/06-wallix-lab.md) and [docs/08](docs/08-roadmap.md).
+Details are in [docs/06](docs/06-wallix-lab.md), [docs/11](docs/11-cyber-range.md) and [docs/08](docs/08-roadmap.md). [docs/12](docs/12-cissp-projects.md) turns the lab into eight CISSP projects, one per domain.
 
 ## 📚 Documentation
 
@@ -150,6 +150,8 @@ Details are in [docs/06](docs/06-wallix-lab.md) and [docs/08](docs/08-roadmap.md
 | 08 | [Roadmap](docs/08-roadmap.md) | phases, mapped to the certification plan |
 | 09 | [NAS and control node](docs/09-nas-and-control-node.md) | creating the DS224+ volume, share and NFS rules; backups; the QDevice; the Mac mini as control node |
 | 10 | [Observability](docs/10-observability.md) | SIEM-lite in 4 GB: WALLIX syslog and Proxmox metrics into Loki, Prometheus and Grafana |
+| 11 | [Cyber range](docs/11-cyber-range.md) | the isolated range for CEH: Kali, targets, rules of engagement, the isolation test, CEH v13 modules |
+| 12 | [CISSP projects](docs/12-cissp-projects.md) | one project per CISSP domain, built on the lab's own controls |
 
 ## 📁 Repository map
 
@@ -157,13 +159,14 @@ Details are in [docs/06](docs/06-wallix-lab.md) and [docs/08](docs/08-roadmap.md
 config/lab.yml            the lab, declared once
 ansible/
   inventory/              hosts and addresses (read by OpenTofu too)
-  playbooks/              pve-postinstall · pve-iac · lab-gateway · remote-access
-  roles/                  pve_base · pve_iac · lab_gateway · tailscale
-terraform/                provider · sdn · pools · gateway · vms (bpg/proxmox, locked)
+  playbooks/              pve-postinstall · pve-iac · lab-gateway · observability · qdevice · remote-access
+  roles/                  pve_base · pve_iac · lab_gateway · observability · debian_autoupdates · qnetd · tailscale
+terraform/                provider · sdn · pools · gateway · observability · vms · nas (bpg/proxmox, locked)
 scripts/
   ova-unpack.sh           OVA → verified disks + the lab.yml entry
+  kali-fetch.sh           Kali's QEMU image → signature-checked disk + the lab.yml entry
   lab-ctl.sh              lab power and snapshots over the Proxmox API
-docs/                     01–08, read in order the first time
+docs/                     01–12, read 01–05 in order the first time
 Makefile                  the entry point: `make` lists everything
 .github/workflows/        offline checks on every push
 ```
@@ -184,5 +187,5 @@ Makefile                  the entry point: `make` lists everything
 1. **Declare, don't click.** If it can be code, it is code. The few manual steps are listed with the reason ([docs/05](docs/05-iac-workflow.md#still-manual-and-why)).
 2. **One place per fact.** Values live in `config/lab.yml` or the inventory, nowhere else.
 3. **Least surprise for the cluster.** Node changes roll one node at a time, VMs are created stopped, and OpenTofu ignores power state, so `make plan` never shows a running lab as drift to undo.
-4. **Isolation first.** Lab nets cannot reach the home LAN, and the cyber range reaches nothing.
+4. **Isolation first.** Lab nets cannot reach the home LAN, and the cyber range reaches nothing but a DHCP lease.
 5. **Say where facts come from.** Sources are linked; anything unverified says so.

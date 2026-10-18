@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Infrastructure as code for a Proxmox VE 9 homelab: two Beelink Mini S12 Pro nodes
 (`pve1`, `pve2`), an S13 Pro (`pve3`) later, a Synology DS224+ and a Mac mini as control
 node. Its first lab is a fully WALLIX PAM lab (lab/pool `wallix` on the `pam` segment),
-built from the owner's WALLIX VirtualBox OVAs, for the WCE-P certification. DevOps and
-cyber-range labs are planned. Read `README.md` and `docs/05-iac-workflow.md`
+built from the owner's WALLIX VirtualBox OVAs, for the WCE-P certification. The cyber range (lab `cyber`, isolated
+segment, `docs/11`) is in code for CEH; `docs/12` maps the lab to CISSP projects. DevOps is planned. Read `README.md` and `docs/05-iac-workflow.md`
 for the full picture.
 
 ## Commands
@@ -58,6 +58,7 @@ zone/vnets, pools, gateway, NAS, `labs.<lab>.vms`). `ansible/inventory/hosts.yml
   container, disk uploads, VMs, and NAS storage/backup jobs.
 - `scripts/` does the imperative bits:
   - `ova-unpack.sh` extracts and verifies OVAs on the Mac.
+  - `kali-fetch.sh` fetches Kali's QEMU image, verifies its signature (pinned key) and SHA-256.
   - `lab-ctl.sh` handles power and snapshots over the API.
 
 **Bootstrap order matters.** `make nodes` → manual `pvecm create/add` (a joining node must

@@ -40,15 +40,19 @@ waits for pve3 (phase 4).
 Rough size: 3 × 4 GB for Kubernetes, plus 2–4 GB for the forge and monitoring. This
 phase really wants `pve3`.
 
-## Phase 3: cyber range (`cyber` segment, never routed)
+## Phase 3: cyber range (in code, `cyber` segment, isolated)
 
-- `cyber` stays out of `gateway.nets`: no internet, no LAN, nothing in or out. You reach
-  it only through the Proxmox console, or a jump VM with one leg on `cyber` and one on
-  `pam`.
-- An attacker VM plus vulnerable targets. Vulnerable boxes are often distributed as
-  OVAs, so `make unpack` works for them as is. → **CEH**, **OSCP** practice.
-- Log collection from the range, for the blue-team side. → supports the security-operations
-  part of **CISSP**. CISSP itself is a knowledge exam with no lab requirement.
+- `cyber` is an isolated gateway net: `labgw` gives its guests a DHCP lease and nothing
+  else, with no route in or out, the LAN included. You reach its guests through the
+  Proxmox console. A jump VM with legs on two nets would route around the policy, so
+  there is none ([11](11-cyber-range.md)).
+- Kali from its signed QEMU image (`make kali`), plus vulnerable targets via `make unpack`.
+  → **CEH** (April 2027 in the plan), **OSCP** practice.
+- Log collection from the range for the blue-team side: opt-in, with `collector: true`.
+- **CISSP** (September 2027) is a knowledge exam with no lab requirement.
+  [12](12-cissp-projects.md) turns the lab into one project per domain.
+- Later, with `pve3`: an IDS on the range, for CEH's *Evading IDS, Firewalls, and
+  Honeypots* module and for CISSP's detection objectives.
 
 **SC-300** (Microsoft Entra) is cloud-side. The lab's AD domain controller matters for
 it only in hybrid-identity exercises.
