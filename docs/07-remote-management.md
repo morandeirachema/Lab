@@ -19,6 +19,33 @@ make lab LAB=wallix CMD=start
 make lab LAB=wallix CMD=snapshot NAME=before-exercise
 ```
 
+### The console UI: `make tui`
+
+`make tui` opens a terminal UI over the same API, with the same token, CA and endpoint
+settings as `make lab`. It refreshes every 5 seconds (`LABTUI_REFRESH`).
+
+| Tab (key) | Shows | Keys |
+|---|---|---|
+| Cluster (`1`) | quorum, each node's status, CPU, memory, uptime | `ctrl+r` refresh |
+| Labs (`2`) | every lab in `config/lab.yml`, plus `infra`: guests, how many run, on which nodes | `s` start · `d` stop · `n` snapshot · `b` roll back · `l` list snapshots |
+| Guests (`3`) | every VM and container: lab, node, status, CPU, memory, uptime | `s` start · `d` shut down (forced after 180 s) · `x` force stop · `e` reboot |
+| Apps (`4`) | each node's web UI, labgw's DNS, Grafana, Alloy's receivers, Pi-hole, NFS when the NAS is on, checked every 30 s | `o`/Enter open in the browser · `h` SSH · `c` check now |
+| Workflows (`5`) | every `make` target, read from the Makefile's `##` comments | Enter: optional arguments, then it runs in the terminal |
+
+- **Lab-wide actions run `scripts/lab-ctl.sh`**, so the boot order, delays and timeouts
+  are lab-ctl's, and its output scrolls in the activity pane. Per-guest power actions call
+  the same API endpoints that lab-ctl does.
+- **Confirmations:** stopping, rebooting and rolling back ask first, with *No* focused.
+  Snapshot names follow lab-ctl's rule.
+- **Workflows run in the real terminal.** The UI suspends, so prompts such as
+  `tofu apply`'s work, and comes back when you press Enter.
+- Every app's address comes from the inventory and `config/lab.yml`, so a change there shows
+  up on the next start.
+
+The code is `tui/labtui.py`: Python and [Textual](https://textual.textualize.io), run by uv
+from the pinned `tui/uv.lock`. Its tests, against a fake Proxmox API, run in `make check`
+and CI.
+
 ## 2. Away from home: Tailscale
 
 Tailscale needs no open ports on the router. Never port-forward 8006 or 22 to the

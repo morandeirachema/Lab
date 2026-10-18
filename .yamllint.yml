@@ -4,6 +4,7 @@ extends: default
 ignore: |
   terraform/.terraform/
   artifacts/
+  tui/.venv/
 
 rules:
   line-length:

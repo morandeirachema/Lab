@@ -5,6 +5,7 @@
 brew "ansible"
 brew "ansible-lint"
 brew "opentofu"
+brew "uv"           # make tui, and the console UI's tests in make check
 brew "jq"           # scripts/lab-ctl.sh, and the Makefile's SSH keys for OpenTofu
 brew "shellcheck"
 brew "yamllint"

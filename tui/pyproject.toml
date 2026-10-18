@@ -1,0 +1,24 @@
+# labtui: the console UI for the lab (make tui). A uv project that is not
+# packaged: uv.lock pins every dependency, make tui and make check run it.
+[project]
+name = "labtui"
+version = "0.1.0"
+description = "Console UI for the lab: Proxmox nodes, labs, guests, apps and make workflows"
+requires-python = ">=3.12"
+dependencies = [
+  "textual==8.2.8",
+  "pyyaml==6.0.3",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["."]

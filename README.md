@@ -24,6 +24,7 @@ One YAML file describes the lab; OpenTofu and Ansible build it; `make` drives ev
 - **Isolated lab segments across nodes.** An SDN zone (VLAN or VXLAN) with `pam`, `devops` and `cyber` vnets. A tiny gateway container gives them DHCP and DNS and enforces a firewall policy. `cyber` is isolated: its guests get a DHCP lease and nothing else, no route in or out.
 - **Logs and metrics in 4 GB.** WALLIX's audit trail goes over syslog into Loki, and Proxmox's own metrics over OTLP into Prometheus, with Grafana on top. The gateway lets the lab nets reach only the collector's ports.
 - **Remote by default.** `make lab` starts, stops, snapshots and rolls back whole labs over the Proxmox API. Tailscale reaches the nodes from anywhere without opening a port.
+- **A console UI.** `make tui` shows nodes, labs, guests and the lab's apps live. It can start, stop, snapshot and roll back, check each service, open web UIs and SSH, and run any `make` workflow. It's Textual, locked with uv, and tested in CI.
 - **No secrets in git.** The API token lives in `~/.config/lab/` (0600). The Tailscale key is read from the environment. OVAs and disks are git-ignored.
 - **Checked, not guessed.** Specs and commands come from Beelink, Intel, Proxmox, Tailscale and provider sources, linked in the docs. Anything unverified (like the S13 Pro's specs) is marked as unverified.
 - **CI on every push.** shellcheck, yamllint, Ansible syntax, ansible-lint at its strictest (`production`) profile, and `tofu validate` against the provider's real schema, all without touching the cluster. Actions are pinned by commit SHA and kept current by Dependabot.
@@ -110,6 +111,7 @@ Every step that stays manual is listed with its reason in
 
 | You want to… | Run |
 |---|---|
+| See everything, live | `make tui`: nodes, labs, guests, apps, workflows ([docs/07](docs/07-remote-management.md#the-console-ui-make-tui)) |
 | See a lab | `make lab LAB=wallix CMD=status` |
 | Start / stop it (boot order = VMID order) | `make lab LAB=wallix CMD=start` · `CMD=stop` |
 | Save a clean state | `make lab LAB=wallix CMD=snapshot NAME=baseline` |
@@ -172,6 +174,7 @@ scripts/
   ova-unpack.sh           OVA → verified disks + the lab.yml entry
   kali-fetch.sh           Kali's QEMU image → signature-checked disk + the lab.yml entry
   lab-ctl.sh              lab power and snapshots over the Proxmox API
+tui/                      make tui: the console UI (Textual, uv.lock) and its tests
 docs/                     01–12, read 01–05 in order the first time
 Makefile                  the entry point: `make` lists everything
 .github/workflows/        offline checks on every push

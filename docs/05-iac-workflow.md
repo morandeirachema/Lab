@@ -12,6 +12,7 @@
 | Observability | Ansible | `ansible/roles/observability` | Alloy, Loki, Prometheus and Grafana on the `obs` VM |
 | Remote access | Ansible | `ansible/roles/tailscale` | Tailscale on the nodes, subnet routes |
 | Operations | scripts | `scripts/lab-ctl.sh`, `scripts/ova-unpack.sh`, `scripts/kali-fetch.sh` | Power, snapshots and rollbacks over the API; unpacking an OVA, or fetching Kali's signed QEMU image, for import |
+| Console UI | Python (uv) | `tui/labtui.py` | `make tui`: live state, power and snapshot actions (lab-wide ones through lab-ctl), app health, the `make` workflows |
 
 OpenTofu reads both YAML files, and Ansible reads `config/lab.yml`, so a value is never
 written twice. CI (`.github/workflows/check.yml`) runs `make check` on every push. It

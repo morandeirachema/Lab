@@ -12,7 +12,7 @@ TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
 export PROXMOX_VE_INSECURE ?= true
 
 .DEFAULT_GOAL := help
-.PHONY: help tools control check ping nodes routes iac init plan apply gateway obs qdevice remote unpack kali lab token
+.PHONY: help tools control tui check ping nodes routes iac init plan apply gateway obs qdevice remote unpack kali lab token
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
@@ -23,12 +23,16 @@ tools: ## Install or update the control node's tools from the Brewfile (Homebrew
 control: ## SSH names for every inventory host on this machine (~/.ssh/lab.conf); needs no node
 	cd ansible && ansible-playbook playbooks/control-node.yml
 
-check: ## Lint and validate everything offline (what CI runs; needs ansible-lint)
+tui: ## Console UI: nodes, labs, guests, apps and these workflows (uv, tui/)
+	uv run --project tui --locked python tui/labtui.py
+
+check: ## Lint and validate everything offline, and test the console UI (what CI runs)
 	shellcheck scripts/*.sh
 	yamllint -s .
 	cd ansible && ansible-playbook --syntax-check playbooks/*.yml
 	cd ansible && ansible-lint --profile production
 	cd terraform && $(TOFU) fmt -check -recursive && $(TOFU) init -backend=false -input=false >/dev/null && $(TOFU) validate
+	uv run --project tui --locked pytest -q tui
 
 ping: ## Check Ansible reaches every Proxmox node
 	cd ansible && ansible proxmox -m ansible.builtin.ping
@@ -39,7 +43,7 @@ nodes: ## Baseline every node: repos, upgrades, tools, ZFS ARC, SSH (one node at
 routes: ## Only the nodes' routes to the lab nets (after changing gateway.nets; no upgrades)
 	cd ansible && ansible-playbook playbooks/pve-postinstall.yml --tags routes
 
-iac: ## Once per cluster: terraform@pve user, role and API token, import storage
+iac: ## Once per cluster: terraform@pve user, role and API token, import storage; copies the cluster CA
 	cd ansible && ansible-playbook playbooks/pve-iac.yml
 
 init: ## Initialise OpenTofu (providers from the lock file)
@@ -56,7 +60,7 @@ AGENT_KEYS = ssh-add -L 2>/dev/null | jq -R -s -c 'split("\n") | map(select(test
 plan: token ## Show what OpenTofu would change on the cluster
 	cd terraform && PROXMOX_VE_API_TOKEN="$$(cat $(TOKEN_FILE))" TF_VAR_ssh_public_keys="$$($(AGENT_KEYS))" $(TOFU) plan
 
-apply: token ## Build or update SDN, pools, the gateway container and the lab VMs
+apply: token ## Build or update the Proxmox objects: SDN, pools, labgw, obs, lab VMs, NAS storage
 	cd terraform && PROXMOX_VE_API_TOKEN="$$(cat $(TOKEN_FILE))" TF_VAR_ssh_public_keys="$$($(AGENT_KEYS))" $(TOFU) apply
 
 gateway: ## Configure the lab gateway (dnsmasq, nftables) after `make apply`

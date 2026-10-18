@@ -27,6 +27,11 @@ artifacts/
 *.retry
 ansible/.ansible/
 
+# The console UI's environment (uv sync --project tui)
+tui/.venv/
+__pycache__/
+.pytest_cache/
+
 # Terraform / OpenTofu (later phases)
 .terraform/
 *.tfstate

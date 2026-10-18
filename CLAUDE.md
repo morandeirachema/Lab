@@ -17,12 +17,13 @@ Everything goes through `make` (run `make` to list targets). `make check` is exa
 CI runs (`.github/workflows/check.yml`) and needs no cluster:
 
 ```sh
-make check                      # shellcheck + yamllint + ansible --syntax-check + tofu fmt/validate
+make check                      # shellcheck + yamllint + ansible --syntax-check + tofu fmt/validate + TUI tests
 shellcheck scripts/lab-ctl.sh   # one script
 yamllint -s config/lab.yml      # one YAML file (config: .yamllint.yml)
 cd ansible && ansible-playbook --syntax-check playbooks/lab-gateway.yml   # one playbook
 cd ansible && ansible-lint --profile production                          # the strictest profile; CI enforces it
 cd terraform && tofu validate
+uv run --project tui --locked pytest -q tui -k guest_start   # one console-UI test
 ```
 
 **Plan without a cluster.** Nothing exists in state, so the provider makes no API call. This
@@ -60,6 +61,9 @@ zone/vnets, pools, gateway, NAS, `labs.<lab>.vms`). `ansible/inventory/hosts.yml
 - `scripts/` does the imperative bits:
   - `ova-unpack.sh` extracts and verifies OVAs on the Mac.
   - `kali-fetch.sh` fetches Kali's QEMU image, verifies its signature (pinned key) and SHA-256.
+- `tui/labtui.py` (`make tui`) is a Textual console UI run by uv from `tui/uv.lock`. Lab-wide
+  actions shell out to `lab-ctl.sh`; per-guest power uses the same API endpoints. Its tests
+  run against a fake Proxmox API (`tui/test_labtui.py`).
   - `lab-ctl.sh` handles power and snapshots over the API.
 
 **Bootstrap order matters.** `make nodes` → manual `pvecm create/add` (a joining node must
@@ -83,6 +87,10 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
 - Isolated nets: `gateway.nets[].isolated` (and `collector`) is read by the `lab_gateway`
   templates (DHCP only, nothing forwarded, collector only on opt-in), `pve_base` (no route)
   and `terraform/locals.tf` (not with `internet: true`, not the obs vnet).
+- Console UI inputs: `tui/labtui.py` reads `labs`, `pools`, `observability` and `nas` from
+  `lab.yml`, and the inventory groups `proxmox`, `lab_gateway`, `observability` and `nas`.
+  Its Workflows tab parses the Makefile's `target: ## description` lines, the same ones
+  `make help` reads, so keep that comment format.
 - OVA path: `ova-unpack.sh` extracts into `artifacts/ova/<name>/` (git-ignored) and prints
   the `lab.yml` entry. `vms.tf` uploads each disk as `proxmox_virtual_environment_file`
   (`content_type = "import"`) and attaches it with `disk.import_from`.
