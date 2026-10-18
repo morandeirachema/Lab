@@ -49,7 +49,7 @@ make ping && make nodes          # 03-install.md: baseline every node
 make qdevice                     # two nodes only: then ssh pve1 pvecm qdevice setup <ip>
 make iac                         # API user, role, token → ~/.config/lab/proxmox-api-token
 make unpack OVA=~/path/to/<wallix-appliance>.ova      # each OVA: 06-wallix-lab.md
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars # add your SSH public key
+ssh-add                          # your key in ssh-agent: OpenTofu's node SSH, and the guests' key
 make init                        # OpenTofu providers, pinned by the lock file
 make plan                        # read it
 make apply                       # SDN, pools, gateway container, WALLIX VMs

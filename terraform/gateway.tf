@@ -101,6 +101,12 @@ resource "proxmox_virtual_environment_container" "gateway" {
 
   lifecycle {
     ignore_changes = [started]
+
+    precondition {
+      # Ansible configures labgw and obs over SSH with these keys.
+      condition     = length(var.ssh_public_keys) > 0
+      error_message = "No SSH public key for the guests: load yours into ssh-agent (ssh-add) and use make plan/apply, or set ssh_public_keys in terraform/terraform.tfvars."
+    }
   }
 
   depends_on = [proxmox_sdn_applier.lab, terraform_data.config_checks]

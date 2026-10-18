@@ -30,6 +30,7 @@ evaluates every local, `for_each` and precondition against the real YAML:
 
 ```sh
 cd terraform && PROXMOX_VE_API_TOKEN='terraform@pve!provider=x' \
+  TF_VAR_ssh_public_keys='["ssh-ed25519 AAAA test"]' \
   tofu plan -refresh=false -input=false -lock=false -state=/tmp/scratch.tfstate
 ```
 

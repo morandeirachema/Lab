@@ -14,7 +14,7 @@ variable "proxmox_insecure" {
 }
 
 variable "ssh_public_keys" {
-  description = "SSH public keys installed for root in the lab containers (the gateway)."
+  description = "SSH public keys for the infrastructure guests (labgw's root, obs's cloud-init user). make plan/apply pass the keys in your ssh-agent."
   type        = list(string)
   default     = []
 }

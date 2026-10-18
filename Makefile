@@ -48,11 +48,16 @@ init: ## Initialise OpenTofu (providers from the lock file)
 token:
 	@test -r $(TOKEN_FILE) || { echo "No API token at $(TOKEN_FILE): run 'make iac' first."; exit 1; }
 
+# The guests (labgw, obs) get the public keys loaded in your ssh-agent, which
+# OpenTofu already uses to reach the nodes. ssh_public_keys in
+# terraform/terraform.tfvars, if set, takes precedence over this variable.
+AGENT_KEYS = ssh-add -L 2>/dev/null | jq -R -s -c 'split("\n") | map(select(test("^(ssh-|ecdsa-|sk-)")))'
+
 plan: token ## Show what OpenTofu would change on the cluster
-	cd terraform && PROXMOX_VE_API_TOKEN="$$(cat $(TOKEN_FILE))" $(TOFU) plan
+	cd terraform && PROXMOX_VE_API_TOKEN="$$(cat $(TOKEN_FILE))" TF_VAR_ssh_public_keys="$$($(AGENT_KEYS))" $(TOFU) plan
 
 apply: token ## Build or update SDN, pools, the gateway container and the lab VMs
-	cd terraform && PROXMOX_VE_API_TOKEN="$$(cat $(TOKEN_FILE))" $(TOFU) apply
+	cd terraform && PROXMOX_VE_API_TOKEN="$$(cat $(TOKEN_FILE))" TF_VAR_ssh_public_keys="$$($(AGENT_KEYS))" $(TOFU) apply
 
 gateway: ## Configure the lab gateway (dnsmasq, nftables) after `make apply`
 	cd ansible && ansible-playbook playbooks/lab-gateway.yml
