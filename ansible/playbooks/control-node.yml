@@ -1,0 +1,13 @@
+---
+# This machine as the control node. Needs no node, so it can run first:
+#
+#   make control        (cd ansible && ansible-playbook playbooks/control-node.yml)
+#
+# Tools come from the Brewfile (make tools); this writes ~/.ssh/lab.conf from
+# the inventory and includes it from ~/.ssh/config.
+- name: Control node
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - control_node

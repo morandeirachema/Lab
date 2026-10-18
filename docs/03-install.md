@@ -5,11 +5,17 @@ nothing to run code on yet.
 
 ## On the Mac, once
 
+With [Homebrew](https://brew.sh) installed:
+
 ```sh
-brew install ansible ansible-lint opentofu jq shellcheck yamllint
 git clone https://github.com/morandeirachema/Lab.git && cd Lab
+make tools            # the Brewfile: Ansible, OpenTofu, jq, the linters, gnupg, 7-Zip
+make control          # ~/.ssh/lab.conf from the inventory: ssh pve1, ssh labgw, ssh obs
 make check            # everything validates offline before you touch a node
 ```
+
+`make control` writes one `Host` entry per inventory host (address and user) and adds
+`Include` for it at the top of `~/.ssh/config`. Re-run it whenever the inventory changes.
 
 ## Installer
 
@@ -40,25 +46,11 @@ Since 9.1 the installer enables the `import` content type on the storages it cre
 ## First contact from the Mac
 
 ```sh
-ssh root@192.168.1.11                          # accept the host key, then exit
-ssh-copy-id root@192.168.1.11                  # key login for Ansible and OpenTofu
+ssh pve1                                       # accept the host key, then exit
+ssh-copy-id pve1                               # key login for Ansible and OpenTofu (root password once)
 ```
 
-Do this for every node. Optional but convenient, in `~/.ssh/config`:
-
-```
-Host pve1
-  HostName 192.168.1.11
-  User root
-Host pve2
-  HostName 192.168.1.12
-  User root
-Host labgw
-  HostName 192.168.1.20
-  User root
-```
-
-Then baseline every node:
+Do this for every node. Then baseline them:
 
 ```sh
 make ping     # Ansible reaches the nodes

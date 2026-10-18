@@ -1,0 +1,25 @@
+---
+# This Mac as control node: SSH names for every host, from the inventory, so
+# the addresses are never written twice. Runs on localhost, needs no node.
+- name: Create the SSH directory
+  ansible.builtin.file:
+    path: "{{ control_node_ssh_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Write the lab's host entries
+  ansible.builtin.template:
+    src: lab.conf.j2
+    dest: "{{ control_node_ssh_dir }}/lab.conf"
+    mode: "0600"
+
+# ssh_config(5): an Include inside a Host block is conditional, so the line
+# goes first in the file. The path is absolute because ssh resolves a relative
+# one against the passwd home directory, which need not be $HOME.
+- name: Include them from ~/.ssh/config
+  ansible.builtin.lineinfile:
+    path: "{{ control_node_ssh_dir }}/config"
+    line: Include {{ control_node_ssh_dir }}/lab.conf
+    insertbefore: BOF
+    create: true
+    mode: "0600"

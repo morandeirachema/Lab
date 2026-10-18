@@ -12,10 +12,16 @@ TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
 export PROXMOX_VE_INSECURE ?= true
 
 .DEFAULT_GOAL := help
-.PHONY: help check ping nodes routes iac init plan apply gateway obs qdevice remote unpack kali lab token
+.PHONY: help tools control check ping nodes routes iac init plan apply gateway obs qdevice remote unpack kali lab token
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
+
+tools: ## Install or update the control node's tools from the Brewfile (Homebrew)
+	brew bundle --file=Brewfile
+
+control: ## SSH names for every inventory host on this machine (~/.ssh/lab.conf); needs no node
+	cd ansible && ansible-playbook playbooks/control-node.yml
 
 check: ## Lint and validate everything offline (what CI runs; needs ansible-lint)
 	shellcheck scripts/*.sh

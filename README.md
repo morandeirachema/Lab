@@ -80,7 +80,8 @@ flowchart TB
 ## 🚀 Quick start
 
 ```sh
-brew install ansible ansible-lint opentofu jq shellcheck yamllint
+make tools                     # the Brewfile's tools (Homebrew)
+make control                   # ssh pve1, ssh labgw, ssh obs: names from the inventory
 make check                     # validate everything offline
 ```
 

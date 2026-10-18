@@ -1,0 +1,3 @@
+---
+# The SSH directory of the user running make on this machine.
+control_node_ssh_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh"

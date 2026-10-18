@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+# Every host in ansible/inventory/hosts.yml except the NAS (no inventory user).
+# Included from ~/.ssh/config, so `ssh pve1`, `ssh labgw`, `ssh obs` work.
+{% for host in groups['all'] | difference(groups['nas'] | default([])) | sort %}
+
+Host {{ host }}
+  HostName {{ hostvars[host].ansible_host }}
+  User {{ hostvars[host].ansible_user | default('root') }}
+{% endfor %}
