@@ -15,6 +15,17 @@ bind-dynamic
 host-record={{ lab.observability.hostname }}.{{ lab.gateway.domain }},{{ hostvars['obs'].ansible_host }}
 
 {% endif %}
+{% for lab_name in lab.labs | default({}) %}
+{%   for host in groups[lab_name] | default([]) %}
+{%     if loop.first %}
+# {{ lab_name }} lab hosts with a static address in the inventory
+{%     endif %}
+host-record={{ host }}.{{ lab.gateway.domain }},{{ hostvars[host].ansible_host }}
+{%     if loop.last %}
+
+{%     endif %}
+{%   endfor %}
+{% endfor %}
 # DNS for the home LAN (lab names), never DHCP there
 interface=eth0
 no-dhcp-interface=eth0

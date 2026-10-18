@@ -111,6 +111,11 @@ def activity(app) -> str:
     return "\n".join(line.text for line in app.query_one("#activity", RichLog).lines)
 
 
+def select_lab(app, name: str) -> None:
+    labs = app.query_one("#labtable", DataTable)
+    labs.move_cursor(row=[labs.get_row_at(i)[0].plain for i in range(labs.row_count)].index(name))
+
+
 async def settle(pilot, check, tries=50):
     for _ in range(tries):
         await pilot.pause(0.05)
@@ -184,7 +189,7 @@ async def test_tables_fill_from_the_api(settings):
         assert app.query_one("#nodes", DataTable).row_count == 2
         labs = app.query_one("#labtable", DataTable)
         rows = {labs.get_row_at(i)[0].plain: labs.get_row_at(i) for i in range(labs.row_count)}
-        assert set(rows) == {"wallix", "cyber", "infra"}
+        assert list(rows) == labtui.lab_names(settings.lab)
         assert rows["infra"][2] == "2" and rows["cyber"][3].plain == "0/1"
         assert "quorate" in str(app.query_one("#summary").render())
 
@@ -242,9 +247,9 @@ async def test_lab_actions_run_lab_ctl(settings, stub_lab_ctl):
     app = labtui.LabTUI(settings)
     async with app.run_test(size=(150, 45)) as pilot:
         labs = app.query_one("#labtable", DataTable)
-        assert await settle(pilot, lambda: labs.row_count == 3)
+        assert await settle(pilot, lambda: labs.row_count == len(labtui.lab_names(settings.lab)))
         await pilot.press("2")
-        labs.move_cursor(row=1)                        # cyber
+        select_lab(app, "cyber")
         await pilot.press("s")
         assert await settle(pilot, lambda: stub_lab_ctl.exists())
         assert stub_lab_ctl.read_text().split("\n")[0] == "cyber start"
@@ -255,9 +260,9 @@ async def test_snapshot_names_are_checked(settings, stub_lab_ctl):
     app = labtui.LabTUI(settings)
     async with app.run_test(size=(150, 45)) as pilot:
         labs = app.query_one("#labtable", DataTable)
-        assert await settle(pilot, lambda: labs.row_count == 3)
+        assert await settle(pilot, lambda: labs.row_count == len(labtui.lab_names(settings.lab)))
         await pilot.press("2")
-        labs.move_cursor(row=1)
+        select_lab(app, "cyber")
         await pilot.press("n")
         assert isinstance(app.screen, labtui.Ask)
         await pilot.press(*"1bad", "enter")
@@ -272,9 +277,9 @@ async def test_rollback_asks_twice(settings, stub_lab_ctl):
     app = labtui.LabTUI(settings)
     async with app.run_test(size=(150, 45)) as pilot:
         labs = app.query_one("#labtable", DataTable)
-        assert await settle(pilot, lambda: labs.row_count == 3)
+        assert await settle(pilot, lambda: labs.row_count == len(labtui.lab_names(settings.lab)))
         await pilot.press("2")
-        labs.move_cursor(row=0)                        # wallix
+        select_lab(app, "wallix")
         await pilot.press("b")
         await pilot.press(*"baseline", "enter")
         assert isinstance(app.screen, labtui.Confirm)

@@ -78,6 +78,10 @@ gateway:
       internet: false
       isolated: true            # no route, no DNS, no LAN: reach its guests from the Proxmox console
       collector: false          # true lets range guests send syslog/OTLP to obs (Alloy's two ports only)
+    - vnet: devops              # the DevOps lab (docs/13-devops-lab.md)
+      address: 10.10.20.1/24
+      dhcp: [10.10.20.100, 10.10.20.199]
+      internet: true            # container images, packages
 
 # The observability VM: Grafana Alloy, Loki, Prometheus and Grafana
 # (terraform/observability.tf builds it; ansible/roles/observability configures it).
@@ -126,3 +130,25 @@ labs:
   # snapshots with make lab LAB=cyber instead (docs/11-cyber-range.md).
   cyber:
     vms: []
+  # The DevOps lab, on the devops segment (internet allowed), VMIDs 2000-2999.
+  # cloud_init: true builds a VM from the Debian 13 cloud image instead of an
+  # OVA (terraform/cloud_vms.tf); its address is in the inventory's devops group.
+  # make devops then installs k3s (docs/13-devops-lab.md).
+  devops:
+    vms:
+      - vmid: 2001
+        name: k3s1              # k3s server: k3s's minimum is 2 cores, 2 GB
+        node: pve1
+        memory: 2048
+        cores: 2
+        vnet: devops
+        cloud_init: true
+        disk_gb: 20
+      - vmid: 2002
+        name: k3s2              # k3s agent
+        node: pve2
+        memory: 2048
+        cores: 2
+        vnet: devops
+        cloud_init: true
+        disk_gb: 20

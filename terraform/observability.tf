@@ -20,17 +20,6 @@ locals {
   obs_push = local.obs_enabled && try(local.obs.metrics_push, false)
 }
 
-resource "proxmox_download_file" "debian_cloud" {
-  count = local.obs_enabled ? 1 : 0
-
-  node_name          = local.obs.node
-  datastore_id       = local.lab.storage.files
-  content_type       = "import"
-  url                = var.debian_cloud_image.url
-  checksum           = var.debian_cloud_image.sha512
-  checksum_algorithm = "sha512"
-}
-
 resource "proxmox_virtual_environment_vm" "obs" {
   count = local.obs_enabled ? 1 : 0
 
@@ -61,7 +50,7 @@ resource "proxmox_virtual_environment_vm" "obs" {
   disk {
     interface    = "virtio0"
     datastore_id = local.lab.storage.vm
-    import_from  = proxmox_download_file.debian_cloud[0].id
+    import_from  = proxmox_download_file.debian_cloud[local.obs.node].id
     size         = local.obs.disk_gb
     iothread     = true
     discard      = "on"

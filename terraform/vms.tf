@@ -10,8 +10,11 @@ locals {
     }
   ]...)
 
+  # VMs from disk images; the cloud_init: true ones are in cloud_vms.tf.
+  image_vms = { for name, vm in local.lab_vms : name => vm if !try(vm.cloud_init, false) }
+
   lab_disks = merge([
-    for name, vm in local.lab_vms : {
+    for name, vm in local.image_vms : {
       for i, d in vm.disks : "${name}-${i}" => merge(d, {
         node = vm.node
         path = abspath("${path.module}/../${d.image}")
@@ -43,7 +46,7 @@ resource "proxmox_virtual_environment_file" "disk_image" {
 }
 
 resource "proxmox_virtual_environment_vm" "lab" {
-  for_each = local.lab_vms
+  for_each = local.image_vms
 
   node_name   = each.value.node
   vm_id       = each.value.vmid

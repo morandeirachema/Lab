@@ -91,6 +91,11 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   `lab.yml`, and the inventory groups `proxmox`, `lab_gateway`, `observability` and `nas`.
   Its Workflows tab parses the Makefile's `target: ## description` lines, the same ones
   `make help` reads, so keep that comment format.
+- Cloud-image lab VMs: a `labs.<lab>.vms` entry with `cloud_init: true` is built by
+  `terraform/cloud_vms.tf` from the Debian cloud image (downloaded once per node that needs
+  it). Its address is the inventory host of the same name in group `<lab>` (child groups
+  included), or a DHCP lease without one. The `lab_gateway` dnsmasq template publishes
+  `<host>.lab.home.arpa` for every host in a lab's inventory group.
 - OVA path: `ova-unpack.sh` extracts into `artifacts/ova/<name>/` (git-ignored) and prints
   the `lab.yml` entry. `vms.tf` uploads each disk as `proxmox_virtual_environment_file`
   (`content_type = "import"`) and attaches it with `disk.import_from`.

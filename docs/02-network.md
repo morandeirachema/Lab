@@ -35,7 +35,7 @@ your router's DHCP pool.
 | Segment | Tag | Subnet | Gateway / DHCP | Internet | Status |
 |---|---|---|---|---|---|
 | `pam` | 10 | `10.10.10.0/24` | `.1`, leases `.100–.199` | no | phase 1 |
-| `devops` | 20 | `10.10.20.0/24` | add to `gateway.nets` | planned yes | phase 2 |
+| `devops` | 20 | `10.10.20.0/24` | `.1`, leases `.100–.199`; `k3s1`/`k3s2` static at `.11`/`.12` | yes | in code ([13](13-devops-lab.md)) |
 | `cyber` | 30 | `10.10.30.0/24` | `.1` leases `.100–.199` and nothing else (`isolated: true`) | never | in code ([11](11-cyber-range.md)) |
 | `obs` | 40 | `10.10.40.0/24` | `.1`; the `obs` VM is static at `.10` | yes (packages) | in code ([10](10-observability.md)) |
 
@@ -137,14 +137,16 @@ deployed, that is the first suspect.
 
 The lab nets sit behind `labgw`, so your Mac needs a route to them. Pick one:
 
-Route both routed lab subnets: `10.10.10.0/24` (`pam`) and `10.10.40.0/24` (`obs`). Add the
-others as you add them to `gateway.nets`.
+Route every routed lab subnet: `10.10.10.0/24` (`pam`), `10.10.20.0/24` (`devops`) and
+`10.10.40.0/24` (`obs`). Add the others as you add them to `gateway.nets`; `cyber` is
+isolated and needs none.
 
 1. **On the home router** (best, if it supports static routes): each subnet via
    `192.168.1.20`.
 2. **On the Mac only, until reboot:**
    ```sh
    sudo route -n add -net 10.10.10.0/24 192.168.1.20
+   sudo route -n add -net 10.10.20.0/24 192.168.1.20
    sudo route -n add -net 10.10.40.0/24 192.168.1.20
    ```
 3. **On the Mac, persistent.** `networksetup` replaces the whole list each time, so
@@ -152,6 +154,7 @@ others as you add them to `gateway.nets`.
    ```sh
    networksetup -setadditionalroutes "Wi-Fi" \
      10.10.10.0 255.255.255.0 192.168.1.20 \
+     10.10.20.0 255.255.255.0 192.168.1.20 \
      10.10.40.0 255.255.255.0 192.168.1.20
    networksetup -getadditionalroutes "Wi-Fi"
    ```

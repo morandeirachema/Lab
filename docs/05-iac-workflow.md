@@ -7,7 +7,7 @@
 | Declaration | (YAML) | `config/lab.yml`, `ansible/inventory/hosts.yml` | The lab itself: LAN, segments, pools, gateway, every lab's guests; all host addresses |
 | Node configuration | Ansible | `ansible/roles/pve_base` | Repositories, upgrades, tools, swappiness, ZFS ARC, gateway kernel modules, SSH, static routes |
 | Cluster prerequisites | Ansible | `ansible/roles/pve_iac` | `terraform@pve`, the `Terraform` role, its API token, `import` content on `local` |
-| Proxmox objects | OpenTofu | `terraform/` | SDN zone and vnets, pools, the container template, the gateway container, uploaded disk images, lab VMs |
+| Proxmox objects | OpenTofu | `terraform/` | SDN zone and vnets, pools, the container template, the gateway container, uploaded disk images, lab VMs from images or from the Debian cloud image, `obs`, NAS storage and backup jobs |
 | Inside the gateway | Ansible | `ansible/roles/lab_gateway` | dnsmasq and nftables, rendered from `config/lab.yml` |
 | Observability | Ansible | `ansible/roles/observability` | Alloy, Loki, Prometheus and Grafana on the `obs` VM |
 | Remote access | Ansible | `ansible/roles/tailscale` | Tailscale on the nodes, subnet routes |
