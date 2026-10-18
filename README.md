@@ -88,18 +88,23 @@ make check                     # validate everything offline
 Then, for a fresh cluster ([full walkthrough](docs/05-iac-workflow.md)):
 
 ```sh
+ssh-copy-id pve1; ssh-copy-id pve2   # once per node
 make ping && make nodes        # baseline every node                (docs/03)
 #   form the cluster by hand:  pvecm create / pvecm add             (docs/04)
 make qdevice                   # third quorum vote while there are two nodes
-make iac                       # API user, role, token → ~/.config/lab/
+make iac                       # API user, role, token, cluster CA → ~/.config/lab/
 make unpack OVA=~/path/to/<wallix-appliance>.ova   # each OVA   (docs/06)
-make init && make plan         # read the plan
-make apply                     # SDN, pools, gateway, WALLIX VMs
+make kali                      # the cyber range's attacker VM      (docs/11)
+ssh-add && make init && make plan   # read the plan
+make apply                     # SDN, pools, gateway, obs, lab VMs
 make gateway                   # DHCP + firewall inside the gateway
 export GRAFANA_ADMIN_PASSWORD=… && make obs   # logs + metrics + Grafana  (docs/10)
 #   then observability.metrics_push: true in config/lab.yml, and make apply again
 make lab LAB=wallix CMD=start
 ```
+
+Every step that stays manual is listed with its reason in
+[docs/05](docs/05-iac-workflow.md#still-manual-and-why), and placed in the full order there.
 
 ## 🎛️ Day to day
 

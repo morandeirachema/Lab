@@ -87,8 +87,9 @@ it as "Mac/Linux file server".
 
 ### 5. Lab names through Pi-hole
 
-Pi-hole is the LAN's DNS (`lan.dns` in `config/lab.yml`). One conditional-forwarding entry
-sends lab names, and reverse lookups for the lab subnet, to the lab gateway. Every device
+Pi-hole is the LAN's DNS (`lan.dns` in `config/lab.yml`). Conditional-forwarding entries
+send lab names, and reverse lookups for the routed lab subnets, to the lab gateway: one entry
+per routed net in `gateway.nets` (`pam` and `obs` today; `cyber` registers no names). Every device
 on the LAN then resolves `<guest>.lab.home.arpa` names, with no `/etc/resolver` file on each
 Mac. Pi-hole v6 calls the setting `dns.revServers`. Its
 [documented format](https://docs.pi-hole.net/ftldns/configfile/) is
@@ -96,7 +97,7 @@ Mac. Pi-hole v6 calls the setting `dns.revServers`. Its
 
 ```sh
 # run inside the Pi-hole container
-pihole-FTL --config dns.revServers '[ "true,10.10.10.0/24,192.168.1.20,lab.home.arpa" ]'
+pihole-FTL --config dns.revServers '[ "true,10.10.10.0/24,192.168.1.20,lab.home.arpa", "true,10.10.40.0/24,192.168.1.20" ]'
 ```
 
 Or set it in the container's environment, the form the Pi-hole docs give for Docker
@@ -104,7 +105,7 @@ Compose:
 
 ```yaml
 environment:
-  FTLCONF_dns_revServers: "true,10.10.10.0/24,192.168.1.20,lab.home.arpa"
+  FTLCONF_dns_revServers: "true,10.10.10.0/24,192.168.1.20,lab.home.arpa;true,10.10.40.0/24,192.168.1.20"
 ```
 
 The value replaces the whole list. If you already have an entry (for the router, say),

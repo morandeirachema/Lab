@@ -23,17 +23,24 @@ against the provider's real schema, without touching the cluster.
 | Step | Why it is not code |
 |---|---|
 | BIOS settings, Proxmox install | Nothing to run code on yet |
+| Switch ports (with `sdn.type: vlan`) | Trunks carrying tags 10/20/30/40, and no IP interface on VLAN 30: the switch's own UI ([02](02-network.md#vlan-or-vxlan)) |
+| Home router: static addresses, optional static routes | Keep the inventory's addresses outside its DHCP pool; the router's own UI ([02](02-network.md#address-plan)) |
+| Copying your SSH key to each node | `ssh-copy-id pve1` etc.: needs each node's root password once ([03](03-install.md#first-contact-from-the-mac)) |
 | `pvecm create` / `pvecm add` | Interactive (root password, fingerprint), and done once |
 | `pvecm qdevice setup` | One-time pairing over root SSH; `make qdevice` prepares both sides |
 | Approving Tailscale routes | Done in the Tailscale admin console, by design |
 | NAS volume, `proxmox` share, NFS rules | DSM is configured in its own UI ([09](09-nas-and-control-node.md)); OpenTofu then adds the storage |
 | Pi-hole's `dns.revServers` entry | One setting in an existing container on the NAS ([09](09-nas-and-control-node.md#5-lab-names-through-pi-hole)) |
-| Mac mini as control node | `pmset`, Remote Login and tools, done once on that Mac ([09](09-nas-and-control-node.md)) |
+| Mac mini as control node: `pmset`, Remote Login | macOS settings behind an admin password, wanted on the mini only; its tools (`make tools`) and SSH names (`make control`) are code ([09](09-nas-and-control-node.md)) |
+| Trusting the cluster CA in macOS, turning TLS verification on | `make iac` copies the CA; the Keychain import needs `sudo`, and verification first needs the certificate names checked ([07](07-remote-management.md#3-trusting-the-clusters-certificate)) |
+| Two-factor login for the web UI | Enrolling a TOTP secret is done by whoever holds the authenticator ([07](07-remote-management.md#hardening-checklist)) |
 | Accepting SSH host keys | First `ssh` to each node, `labgw` and `obs`; Ansible checks host keys and won't accept them silently |
 | Downloading target images for the range | Third-party downloads, each with its own terms; `make unpack` takes over from the file ([11](11-cyber-range.md#build-it)) |
 | Kali's first password change | Inside the guest, from the Proxmox console: the range has no path from the Mac, by design ([11](11-cyber-range.md#build-it)) |
 | Turning on `observability.metrics_push` | Proxmox refuses a metric server nobody answers, so it's created after `make obs` ([10](10-observability.md#build-it)) |
+| WALLIX first boot: wizard, network, license | Inside each appliance's console; the license comes from WALLIX Support ([06](06-wallix-lab.md)) |
 | Pointing WALLIX at the collector | The Bastion's System → SIEM integration / Syslog pages ([10](10-observability.md#send-wallixs-logs-to-it)) |
+| Pointing range targets at the collector (opt-in) | Inside untrusted guests, from the console, only with `collector: true` ([11](11-cyber-range.md#the-blue-side)) |
 | Grafana's contact point | Where alerts go (email, chat) is your choice and needs its own credentials. Rules, dashboards and data sources are provisioned ([10](10-observability.md#keep-them-as-code)) |
 | Upgrading Grafana, Loki, Alloy | Kept out of unattended upgrades on purpose, so a new major can't break the configs (`apt upgrade` on `obs`) |
 | Routes from the Mac to the lab nets | A router or Mac setting ([02](02-network.md#reaching-the-lab-from-the-mac)); Ansible reaches `obs` (`10.10.40.10`) through it |
@@ -42,23 +49,43 @@ against the provider's real schema, without touching the cluster.
 
 ## Order, for a fresh cluster
 
+Every manual step from the table above appears here as a comment, where it falls.
+
 ```sh
+# --- The Mac (03-install.md, 09-nas-and-control-node.md)
+make tools && make control       # tools from the Brewfile; ssh pve1/labgw/obs from the inventory
 make check                       # offline: everything validates
-make ping && make nodes          # 03-install.md: baseline every node
-# form the cluster by hand:      # 04-cluster.md
+
+# --- The nodes (03-install.md, 04-cluster.md)
+# by hand: switch trunks, router reservations, BIOS, Proxmox install on each node
+ssh-copy-id pve1; ssh-copy-id pve2   # host key and root password, once per node
+make ping && make nodes          # baseline every node: repos, upgrades, ARC, routes, Wake-on-LAN
+# by hand: pvecm create / pvecm add (04-cluster.md)
 make qdevice                     # two nodes only: then ssh pve1 pvecm qdevice setup <ip>
-make iac                         # API user, role, token → ~/.config/lab/proxmox-api-token
-make unpack OVA=~/path/to/<wallix-appliance>.ova      # each OVA: 06-wallix-lab.md
+make iac                         # API user, role, token and the cluster CA → ~/.config/lab/
+
+# --- The lab (06-wallix-lab.md, 11-cyber-range.md)
+make unpack OVA=~/path/to/<wallix-appliance>.ova      # each OVA, pasted into labs.wallix.vms
+make kali                        # the range's attacker VM, pasted into labs.cyber.vms
 ssh-add                          # your key in ssh-agent: OpenTofu's node SSH, and the guests' key
-make init                        # OpenTofu providers, pinned by the lock file
-make plan                        # read it
-make apply                       # SDN, pools, gateway container, WALLIX VMs
-make gateway                     # dnsmasq + nftables inside the gateway
-export GRAFANA_ADMIN_PASSWORD=…   # first run of make obs only
-make obs                         # observability stack (10-observability.md)
+make init && make plan           # OpenTofu providers from the lock file; read the plan
+make apply                       # SDN, pools, labgw, obs, the lab VMs (stopped)
+make gateway                     # dnsmasq + nftables inside labgw
+# by hand: routes from the Mac to the routed lab nets via labgw (02-network.md)
+
+# --- Observability (10-observability.md)
+export GRAFANA_ADMIN_PASSWORD=…  # first run of make obs only
+make obs                         # Alloy, Loki, Prometheus, Grafana, its alert and dashboard
 # set observability.metrics_push: true in config/lab.yml, then:
 make apply                       # Proxmox's metric server (needs Alloy up)
-make lab LAB=wallix CMD=start
+
+# --- Use it
+make lab LAB=wallix CMD=start    # by hand: WALLIX's first-boot wizard and license, in its console
+
+# --- Any time later
+#   NAS share ready (09):  nas.enabled: true in config/lab.yml, then make apply
+#   Tailscale (07):        tailscale_enabled: true, export TS_AUTHKEY=…, make remote
+#   Hardening (07):        pve_base_ssh_disable_passwords: true, make nodes; TOTP; TLS verification
 ```
 
 To change anything later, edit `config/lab.yml` and run `make plan`, then `make apply`.
