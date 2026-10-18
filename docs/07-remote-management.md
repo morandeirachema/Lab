@@ -55,10 +55,11 @@ Each cluster creates its own certificate authority. The Proxmox docs say to "cop
 /etc/pve/pve-root-ca.pem from any cluster node out of band … and import it into the
 operating system or browser trust store", because there is no download endpoint.
 
+`make iac` copies it over SSH to `~/.config/lab/pve-root-ca.pem`. Adding it to the
+Mac's trust store, for browsers and other Keychain users, needs your admin password, so
+it stays a manual step:
+
 ```sh
-mkdir -p ~/.config/lab
-scp pve1:/etc/pve/pve-root-ca.pem ~/.config/lab/pve-root-ca.pem
-# browsers and other Keychain users on the Mac:
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/.config/lab/pve-root-ca.pem
 ```
 
@@ -88,9 +89,10 @@ These mini PCs have no IPMI. The BIOS settings in
 - **Wake-on-LAN** is enabled in the BIOS by default. Proxmox can send the packet from
   another node:
   ```sh
-  ssh pve2 pvenode config set -wakeonlan <pve2's NIC MAC>   # once, on the node to be woken
-  ssh pve1 pvenode wakeonlan pve2                           # later, from a running node
+  ssh pve1 pvenode wakeonlan pve2                           # from a running node
   ```
+  `make nodes` registers each node's NIC for it (`pvenode config set --wakeonlan <MAC>`).
+  It uses the one physical port of the LAN bridge, and says so if it finds another count.
   `pvenode wakeonlan` broadcasts the magic packet on UDP port 9. From the Mac on the same
   LAN, `brew install wakeonlan`, then `wakeonlan <MAC>`, does the same. Whether the NIC
   wakes from a *Linux* shutdown can also depend on the driver's setting; check with

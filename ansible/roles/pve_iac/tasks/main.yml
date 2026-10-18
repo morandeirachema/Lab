@@ -106,3 +106,9 @@
          'Token ' ~ pve_iac_user ~ '!' ~ pve_iac_token ~ ' already exists; its secret is in '
          ~ pve_iac_token_file ~ ' if this machine created it. To re-issue it: '
          ~ 'pveum user token remove ' ~ pve_iac_user ~ ' ' ~ pve_iac_token ~ ', then re-run.' }}
+
+- name: Copy the cluster's CA certificate to this machine
+  ansible.builtin.fetch:
+    src: /etc/pve/pve-root-ca.pem
+    dest: "{{ pve_iac_ca_file }}"
+    flat: true

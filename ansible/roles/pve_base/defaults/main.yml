@@ -10,7 +10,7 @@ pve_base_full_upgrade: true
 pve_base_reboot: false
 
 pve_base_packages:
-  - jq            # used by scripts/pve/*.sh
+  - jq            # for pvesh/pveum --output-format json by hand
   - git
   - rsync
   - vim
@@ -29,6 +29,12 @@ pve_base_zfs_arc_max_gib: 2
 # gateway.nets, via the labgw address in the inventory). The nodes need them to
 # push metrics to the observability VM and to reach lab guests.
 pve_base_lab_routes: true
+
+# Register the node's NIC for Wake-on-LAN, so another node can wake it with
+# `pvenode wakeonlan <node>` (docs/07-remote-management.md). The NIC is the
+# physical port of the LAN bridge.
+pve_base_wakeonlan: true
+pve_base_wakeonlan_bridge: "{{ lab.lan.bridge | default('vmbr0') }}"
 
 # Extra static routes, e.g. for a Tailscale subnet router:
 #   pve_base_static_routes:

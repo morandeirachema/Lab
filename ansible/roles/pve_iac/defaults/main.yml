@@ -57,5 +57,9 @@ pve_iac_privileges:
 # It is shown by Proxmox only once, at creation.
 pve_iac_token_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/lab/proxmox-api-token"
 
+# A copy of the cluster's CA certificate on the same machine. The Proxmox docs
+# say to copy /etc/pve/pve-root-ca.pem "out of band"; SSH is that band.
+pve_iac_ca_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/lab/pve-root-ca.pem"
+
 # Storage that receives uploaded disk images; needs the "import" content type.
 pve_iac_import_storage: local

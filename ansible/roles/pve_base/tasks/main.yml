@@ -174,6 +174,45 @@
   notify: Reload systemd
   tags: [routes]
 
+# --- Wake-on-LAN --------------------------------------------------------------
+# pvenode(1): wakeonlan = "[mac=]<MAC address> [,bind-interface=...]".
+# The bridge's ports include tap/veth devices; only a physical NIC has a
+# device link in sysfs.
+- name: Find the MAC of the physical NIC behind the LAN bridge
+  ansible.builtin.shell: |
+    for port in /sys/class/net/{{ pve_base_wakeonlan_bridge }}/brif/*; do
+      name=${port##*/}
+      [ -e "/sys/class/net/$name/device" ] && cat "/sys/class/net/$name/address"
+    done
+    exit 0
+  args:
+    executable: /bin/bash
+  register: pve_base_wol_mac
+  changed_when: false
+  when: pve_base_wakeonlan | bool
+
+- name: Read the node's Wake-on-LAN setting
+  ansible.builtin.command: pvenode config get --property wakeonlan
+  register: pve_base_wol_current
+  changed_when: false
+  when: pve_base_wakeonlan | bool and pve_base_wol_mac.stdout_lines | length == 1
+
+- name: Register the NIC for Wake-on-LAN
+  ansible.builtin.command: pvenode config set --wakeonlan {{ pve_base_wol_mac.stdout | trim }}
+  changed_when: true
+  when:
+    - pve_base_wakeonlan | bool
+    - pve_base_wol_mac.stdout_lines | length == 1
+    - (pve_base_wol_mac.stdout | trim | lower) not in (pve_base_wol_current.stdout | lower)
+
+- name: Say why Wake-on-LAN was left alone
+  ansible.builtin.debug:
+    msg: >-
+      {{ pve_base_wol_mac.stdout_lines | length }} physical NICs behind
+      {{ pve_base_wakeonlan_bridge }}, expected one: set it by hand with
+      pvenode config set --wakeonlan <MAC>.
+  when: pve_base_wakeonlan | bool and pve_base_wol_mac.stdout_lines | length != 1
+
 # --- SSH --------------------------------------------------------------------
 - name: Key-only SSH for root
   ansible.builtin.copy:
