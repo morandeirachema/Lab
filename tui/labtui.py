@@ -110,9 +110,26 @@ def load_settings(env: dict | None = None, repo: Path = REPO) -> Settings:
 
 
 def inventory_hosts(inventory: dict, group: str) -> dict:
-    """{name: address} for one inventory group (empty if the group is absent)."""
-    hosts = (inventory["all"]["children"].get(group) or {}).get("hosts") or {}
-    return {name: (h or {}).get("ansible_host") for name, h in hosts.items()}
+    """{name: address} for one inventory group, found at any depth, child groups
+    included (empty if the group is absent)."""
+
+    def find(groups: dict | None) -> dict | None:
+        for name, g in (groups or {}).items():
+            if name == group:
+                return g or {}
+            found = find((g or {}).get("children"))
+            if found is not None:
+                return found
+        return None
+
+    def hosts_of(g: dict) -> dict:
+        hosts = {name: (h or {}).get("ansible_host") for name, h in (g.get("hosts") or {}).items()}
+        for child in (g.get("children") or {}).values():
+            hosts.update(hosts_of(child or {}))
+        return hosts
+
+    found = find(inventory["all"]["children"])
+    return hosts_of(found) if found is not None else {}
 
 
 # --- Proxmox API -----------------------------------------------------------------
@@ -292,6 +309,8 @@ def build_apps(settings: Settings) -> list[AppEntry]:
         apps.append(AppEntry("Grafana", ip, 3000, url=f"http://{ip}:3000/", ssh=name, health="/api/health"))
         apps.append(AppEntry("Alloy: syslog receiver", ip, int(obs.get("syslog_port", 514))))
         apps.append(AppEntry("Alloy: OTLP receiver", ip, int(obs.get("otlp_port", 4318))))
+    for name, ip in inventory_hosts(inv, "k3s_server").items():
+        apps.append(AppEntry(f"Kubernetes API · {name}", ip, 6443, ssh=name))
     for name, ip in inventory_hosts(inv, "nas").items():
         apps.append(AppEntry(f"Pi-hole DNS · {name}", ip, 53))
         if (lab.get("nas") or {}).get("enabled"):

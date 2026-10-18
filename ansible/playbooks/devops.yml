@@ -1,0 +1,34 @@
+---
+# The DevOps lab's VMs (terraform/cloud_vms.tf): security updates, then k3s,
+# the server first so the agents can read its join token.
+#
+#   make lab LAB=devops CMD=start && make devops
+#   export KUBECONFIG=~/.config/lab/kubeconfig && kubectl get nodes
+- name: Security updates on the DevOps VMs
+  hosts: devops
+  roles:
+    - role: debian_autoupdates
+
+- name: The k3s server
+  hosts: k3s_server
+  pre_tasks:
+    - name: Load config/lab.yml (the lab domain for the certificate's names)
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../config/lab.yml"
+        name: lab
+  roles:
+    - role: k3s
+      vars:
+        k3s_role: server
+
+- name: The k3s agents
+  hosts: k3s_agents
+  pre_tasks:
+    - name: Load config/lab.yml
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../config/lab.yml"
+        name: lab
+  roles:
+    - role: k3s
+      vars:
+        k3s_role: agent

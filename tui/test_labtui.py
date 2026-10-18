@@ -150,9 +150,17 @@ def test_apps_come_from_the_inventory(settings):
     assert grafana.url == f"http://{obs_ip}:3000/" and grafana.ssh == "obs"
 
 
+def test_nested_inventory_groups(settings):
+    assert labtui.inventory_hosts(settings.inventory, "k3s_server") == {"k3s1": "10.10.20.11"}
+    assert set(labtui.inventory_hosts(settings.inventory, "devops")) == {"k3s1", "k3s2"}
+    assert labtui.inventory_hosts(settings.inventory, "nonexistent") == {}
+    names = [a.name for a in labtui.build_apps(settings)]
+    assert "Kubernetes API · k3s1" in names
+
+
 def test_workflows_are_the_makefile_targets():
     targets = dict(labtui.make_targets())
-    assert {"plan", "apply", "gateway", "obs", "kali"} <= targets.keys()
+    assert {"plan", "apply", "gateway", "obs", "kali", "devops"} <= targets.keys()
     assert not labtui.HIDDEN_TARGETS & targets.keys()
 
 

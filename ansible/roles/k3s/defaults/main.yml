@@ -1,0 +1,14 @@
+---
+# k3s from its GitHub release, checked against the release's sha256sum-amd64.txt.
+# v1.36.5+k3s1 is what the stable channel pointed to in October 2026
+# (https://update.k3s.io/v1-release/channels/stable). To upgrade, change both.
+k3s_version: v1.36.5+k3s1
+k3s_sha256: d73847bcd3c5fccef0115b372e2f9a91f3032dc84bbf71518a4617565294d313
+
+# server on the k3s_server host, agent elsewhere (playbooks/devops.yml sets it).
+k3s_role: server
+k3s_server_host: "{{ groups['k3s_server'][0] }}"
+
+# The cluster's admin kubeconfig, copied to the machine running Ansible (0600),
+# with its server field pointed at the server's inventory address.
+k3s_kubeconfig: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/lab/kubeconfig"

@@ -29,12 +29,12 @@ waits for pve3 (phase 4).
 
 ## Phase 2: DevOps (`devops` segment, internet allowed)
 
-- Add `devops` to `gateway.nets` with `internet: true`.
-- A Debian cloud image as an OpenTofu `proxmox_download_file` with
-  `content_type = "import"`. Proxmox accepts `.qcow2` for import. VMs use it with
-  cloud-init, so they are built from code and not from an OVA.
-- A small Kubernetes cluster and a Git forge with CI runners, for DevOps practice.
-  Prometheus and Grafana already run on `obs`.
+- **In code:**
+  - `devops` is in `gateway.nets`, with `internet: true`.
+  - Lab VMs can be built from the Debian cloud image with cloud-init (`cloud_init: true`).
+  - A two-node k3s cluster runs on them, installed by `make devops`
+    ([13](13-devops-lab.md)).
+- **Next:** a Git forge with CI runners. Prometheus and Grafana already run on `obs`.
 - No certificate depends on it. The plan dropped the **CKS** on 13 September 2026 and keeps
   the **CKA** only as a line already on the CV.
 

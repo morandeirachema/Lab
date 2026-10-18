@@ -8,7 +8,7 @@ Infrastructure as code for a Proxmox VE 9 homelab: two Beelink Mini S12 Pro node
 (`pve1`, `pve2`), an S13 Pro (`pve3`) later, a Synology DS224+ and a Mac mini as control
 node. Its first lab is a fully WALLIX PAM lab (lab/pool `wallix` on the `pam` segment),
 built from the owner's WALLIX VirtualBox OVAs, for the WCE-P certification. The cyber range (lab `cyber`, isolated
-segment, `docs/11`) is in code for CEH; `docs/12` maps the lab to CISSP projects. DevOps is planned. Read `README.md` and `docs/05-iac-workflow.md`
+segment, `docs/11`) is in code for CEH; `docs/12` maps the lab to CISSP projects. The DevOps lab (k3s, `docs/13`) is in code. Read `README.md` and `docs/05-iac-workflow.md`
 for the full picture.
 
 ## Commands
@@ -55,7 +55,8 @@ zone/vnets, pools, gateway, NAS, `labs.<lab>.vms`). `ansible/inventory/hosts.yml
 
 **Layers.**
 - Ansible roles configure hosts: `pve_base` per node, `pve_iac` once per cluster,
-  `lab_gateway` inside the gateway container, and `tailscale`.
+  `lab_gateway` inside the gateway container, `observability` on `obs`, `k3s` on the DevOps
+  VMs, `control_node` on the Mac, and `tailscale`.
 - OpenTofu (`bpg/proxmox`, locked) creates the Proxmox objects: SDN, pools, the gateway
   container, disk uploads, VMs, and NAS storage/backup jobs.
 - `scripts/` does the imperative bits:

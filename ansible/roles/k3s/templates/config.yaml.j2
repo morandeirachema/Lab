@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+# Read by k3s on start: each key is the CLI flag of the same name.
+{% if k3s_role == 'server' %}
+write-kubeconfig-mode: "0600"
+tls-san:
+  - "{{ ansible_host }}"
+  - "{{ inventory_hostname }}.{{ lab.gateway.domain }}"
+{% else %}
+server: "https://{{ hostvars[k3s_server_host].ansible_host }}:6443"
+token: "{{ hostvars[k3s_server_host].k3s_node_token }}"
+{% endif %}

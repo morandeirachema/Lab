@@ -1,0 +1,92 @@
+---
+# k3s without piping an installer into sh: the release binary, checked by
+# SHA-256; the systemd unit k3s's install script writes; and the config file
+# k3s reads on start (/etc/rancher/k3s/config.yaml). Expects config/lab.yml
+# loaded as `lab` (playbooks/devops.yml).
+- name: Install the k3s binary (checked against the release's SHA-256)
+  ansible.builtin.get_url:
+    url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version | urlencode }}/k3s"
+    dest: /usr/local/bin/k3s
+    checksum: "sha256:{{ k3s_sha256 }}"
+    mode: "0755"
+  notify: Restart k3s
+
+- name: Create the k3s configuration directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
+
+# The agent's copy holds the join token, so the file is 0600 on both.
+- name: Write the k3s configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    mode: "0600"
+  notify: Restart k3s
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: k3s.service.j2
+    dest: "/etc/systemd/system/{{ 'k3s' if k3s_role == 'server' else 'k3s-agent' }}.service"
+    mode: "0644"
+  notify: Restart k3s
+
+- name: Start k3s at boot
+  ansible.builtin.systemd_service:
+    name: "{{ 'k3s' if k3s_role == 'server' else 'k3s-agent' }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# A changed binary or config takes effect before the token and kubeconfig are read.
+- name: Apply k3s changes now
+  ansible.builtin.meta: flush_handlers
+
+- name: Join token and kubeconfig from the server
+  when: k3s_role == 'server'
+  block:
+    - name: Wait for the server to write its join token and kubeconfig
+      ansible.builtin.wait_for:
+        path: "{{ item }}"
+        timeout: 300
+      loop:
+        - /var/lib/rancher/k3s/server/node-token
+        - /etc/rancher/k3s/k3s.yaml
+
+    - name: Read the join token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_file
+      no_log: true
+
+    - name: Keep the token for the agents
+      ansible.builtin.set_fact:
+        k3s_node_token: "{{ k3s_token_file.content | b64decode | trim }}"
+      no_log: true
+
+    - name: Read the admin kubeconfig
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: k3s_admin_kubeconfig
+      no_log: true
+
+    - name: Create the kubeconfig directory on this machine
+      ansible.builtin.file:
+        path: "{{ k3s_kubeconfig | dirname }}"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      become: false
+
+    # k3s's docs: copy k3s.yaml and replace the server field with the server's address.
+    - name: Write the kubeconfig on this machine, pointed at the server
+      ansible.builtin.copy:
+        dest: "{{ k3s_kubeconfig }}"
+        mode: "0600"
+        content: >-
+          {{ k3s_admin_kubeconfig.content | b64decode
+             | regex_replace('https://127\.0\.0\.1:6443', 'https://' ~ ansible_host ~ ':6443') }}
+      delegate_to: localhost
+      become: false
+      no_log: true
