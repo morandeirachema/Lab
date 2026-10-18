@@ -15,8 +15,8 @@ management and CI. See docs 01–07.
 ## Phase 1: WALLIX lab (in code now)
 
 A fully WALLIX PAM lab on the `pam` segment, from the WALLIX OVAs
-([06-wallix-lab.md](06-wallix-lab.md)). → **WALLIX WCE-P**, expected before November 2026 in
-the plan (WCP-P is held).
+([06-wallix-lab.md](06-wallix-lab.md)). → **WALLIX WCE-P**: the plan hopes for the week of
+12 October 2026, or 16 November to December 2026 if it slips (WCP-P is held).
 
 Windows guests are the costly part, at roughly 2–4 GB each. Plan two to three of them
 across the two nodes.
@@ -33,9 +33,10 @@ waits for pve3 (phase 4).
 - A Debian cloud image as an OpenTofu `proxmox_download_file` with
   `content_type = "import"`. Proxmox accepts `.qcow2` for import. VMs use it with
   cloud-init, so they are built from code and not from an OVA.
-- A three-VM Kubernetes cluster (kubeadm), one VM per node once `pve3` exists. → **CKA**,
-  then **CKS** (hardening, policies, runtime security).
-- A Git forge with CI runners. Prometheus and Grafana already run on `obs`.
+- A small Kubernetes cluster and a Git forge with CI runners, for DevOps practice.
+  Prometheus and Grafana already run on `obs`.
+- No certificate depends on it. The plan dropped the **CKS** on 13 September 2026 and keeps
+  the **CKA** only as a line already on the CV.
 
 Rough size: 3 × 4 GB for Kubernetes, plus 2–4 GB for the forge and monitoring. This
 phase really wants `pve3`.
@@ -47,15 +48,17 @@ phase really wants `pve3`.
   Proxmox console. A jump VM with legs on two nets would route around the policy, so
   there is none ([11](11-cyber-range.md)).
 - Kali from its signed QEMU image (`make kali`), plus vulnerable targets via `make unpack`.
-  → **CEH** (April 2027 in the plan), **OSCP** practice.
+  → **CEH** (April 2027 in the plan). The plan deliberately leaves OSCP out.
 - Log collection from the range for the blue-team side: opt-in, with `collector: true`.
 - **CISSP** (September 2027) is a knowledge exam with no lab requirement.
   [12](12-cissp-projects.md) turns the lab into one project per domain.
 - Later, with `pve3`: an IDS on the range, for CEH's *Evading IDS, Firewalls, and
   Honeypots* module and for CISSP's detection objectives.
 
-**SC-300** (Microsoft Entra) is cloud-side. The lab's AD domain controller matters for
-it only in hybrid-identity exercises.
+**After the CISSP**, the plan's last block is HTB Academy's Active Directory modules
+(October to December 2027). They run in HTB's own VPN labs, so they need nothing from this
+lab. The SC-300 left the dated plan on 12 October 2026, when the plan was set to end in
+December 2027.
 
 ## Phase 4: when the S13 Pro arrives
 

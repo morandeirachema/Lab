@@ -139,8 +139,8 @@ Sources and BIOS settings are in [docs/01](docs/01-hardware.md).
 | Lab | Segment | Guests | Status | Certifications it serves |
 |---|---|---|---|---|
 | **WALLIX** | `pam` (no internet) | the WALLIX OVAs, imported with `make unpack` | 🟢 in code | WALLIX WCE-P |
-| **DevOps** | `devops` (internet) | Kubernetes from cloud images, a Git forge with CI, monitoring | 🟡 planned | CKA, CKS |
-| **Cyber range** | `cyber` (isolated) | Kali from its signed QEMU image (`make kali`), vulnerable targets via `make unpack` | 🟢 in code | CEH, OSCP practice |
+| **DevOps** | `devops` (internet) | Kubernetes from cloud images, a Git forge with CI, monitoring | 🟡 planned | practice; none in the plan (CKS dropped) |
+| **Cyber range** | `cyber` (isolated) | Kali from its signed QEMU image (`make kali`), vulnerable targets via `make unpack` | 🟢 in code | CEH |
 
 Details are in [docs/06](docs/06-wallix-lab.md), [docs/11](docs/11-cyber-range.md) and [docs/08](docs/08-roadmap.md). [docs/12](docs/12-cissp-projects.md) turns the lab into eight CISSP projects, one per domain.
 

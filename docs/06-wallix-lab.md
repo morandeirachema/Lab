@@ -1,8 +1,9 @@
 # 6. The WALLIX lab
 
 The first lab is a **WALLIX PAM lab**, built from the WALLIX VirtualBox OVAs, for the
-WALLIX certification track. The `Cyber-Career` plan records WCP-P as held and WCE-P
-(WALLIX Certified Expert) as expected before November 2026.
+WALLIX certification track. The `Cyber-Career` plan records WCP-P as held. It hopes for
+WCE-P (WALLIX Certified Expert) in the week of 12 October 2026, or 16 November to December
+2026 if the sitting slips.
 
 | | |
 |---|---|
