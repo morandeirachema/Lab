@@ -34,7 +34,7 @@ against the provider's real schema, without touching the cluster.
 | Kali's first password change | Inside the guest, from the Proxmox console: the range has no path from the Mac, by design ([11](11-cyber-range.md#build-it)) |
 | Turning on `observability.metrics_push` | Proxmox refuses a metric server nobody answers, so it's created after `make obs` ([10](10-observability.md#build-it)) |
 | Pointing WALLIX at the collector | The Bastion's System → SIEM integration / Syslog pages ([10](10-observability.md#send-wallixs-logs-to-it)) |
-| Grafana alert rules and dashboards | Built in Grafana; not provisioned yet |
+| Grafana's contact point | Where alerts go (email, chat) is your choice and needs its own credentials. Rules, dashboards and data sources are provisioned ([10](10-observability.md#keep-them-as-code)) |
 | Upgrading Grafana, Loki, Alloy | Kept out of unattended upgrades on purpose, so a new major can't break the configs (`apt upgrade` on `obs`) |
 | Routes from the Mac to the lab nets | A router or Mac setting ([02](02-network.md#reaching-the-lab-from-the-mac)); Ansible reaches `obs` (`10.10.40.10`) through it |
 | Getting the WALLIX OVAs | They come from WALLIX; `make unpack` takes them from there |

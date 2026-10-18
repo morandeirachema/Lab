@@ -1,6 +1,7 @@
 // {{ ansible_managed }}
 // Syslog (WALLIX, the gateway, anything on the lab nets) -> Loki
 // OTLP/HTTP metrics (the Proxmox nodes' metric server) -> Prometheus remote write
+// obs's own host metrics (disk, memory, CPU) -> Prometheus remote write
 
 // loki.source.syslog drops __-prefixed labels unless relabel rules keep them.
 // Keep a few useful ones only, so Loki's label cardinality stays low.
@@ -65,6 +66,15 @@ otelcol.receiver.otlp "proxmox" {
 otelcol.exporter.prometheus "local" {
   resource_to_telemetry_conversion = true
   forward_to                       = [prometheus.remote_write.local.receiver]
+}
+
+// The VM's own disk, memory and CPU, for the provisioned disk alert: Loki has
+// no size limit, so a guest flooding syslog can fill the disk.
+prometheus.exporter.unix "obs" { }
+
+prometheus.scrape "obs" {
+  targets    = prometheus.exporter.unix.obs.targets
+  forward_to = [prometheus.remote_write.local.receiver]
 }
 
 prometheus.remote_write "local" {

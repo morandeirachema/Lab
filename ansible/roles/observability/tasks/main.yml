@@ -115,6 +115,30 @@
     mode: "0644"
   notify: Restart grafana
 
+- name: Provisioning directories for alert rules and dashboards
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/{{ item }}
+    state: directory
+    mode: "0755"
+  loop: [alerting, dashboards]
+
+- name: Provision the alert rules
+  ansible.builtin.template:
+    src: alerting.yaml.j2
+    dest: /etc/grafana/provisioning/alerting/lab.yaml
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Provision the dashboards folder
+  ansible.builtin.template:
+    src: dashboards.yaml.j2
+    dest: /etc/grafana/provisioning/dashboards/lab.yaml
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Dashboards from the repo
+  ansible.builtin.import_tasks: dashboards.yml
+
 - name: Grafana admin password file (root:grafana 0640)
   ansible.builtin.copy:
     dest: /etc/grafana/admin_password

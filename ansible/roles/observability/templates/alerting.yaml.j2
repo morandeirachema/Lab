@@ -1,0 +1,48 @@
+# {{ ansible_managed }}
+# Alert rules as code. Grafana shows their state under Alerting -> Alert rules;
+# sending notifications needs a contact point, which is not provisioned.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: obs
+    folder: Lab
+    interval: 1m
+    rules:
+      # Loki has no size limit (docs/10-observability.md), so a guest flooding
+      # syslog can fill obs's disk before the retention period ends.
+      - uid: obs-root-disk-free
+        title: obs root filesystem low on space
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: lt
+                    params:
+                      - {{ observability_disk_free_min }}
+        # No data means obs's own metrics stopped arriving: worth an alert too.
+        noDataState: Alerting
+        execErrState: Error
+        for: {{ observability_disk_alert_for }}
+        annotations:
+          summary: >-
+            obs has less than {{ (observability_disk_free_min | float * 100) | round | int }}% free
+            on / (or its host metrics stopped). Lower observability_retention_days, or grow
+            observability.disk_gb in config/lab.yml.
+        labels:
+          lab: infra

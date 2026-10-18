@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+# Every .json file in {{ observability_dashboards_dir }} (copied there from
+# ansible/roles/observability/files/dashboards) is a dashboard in the "Lab"
+# folder. allowUiUpdates is off: change a dashboard in the repo, not in the UI.
+apiVersion: 1
+
+providers:
+  - name: lab
+    orgId: 1
+    folder: Lab
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: {{ observability_dashboards_dir }}

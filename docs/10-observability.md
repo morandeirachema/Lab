@@ -65,8 +65,11 @@ flowchart LR
   with its OTLP receiver patched out. Alloy turns OTLP into remote write, which Prometheus
   accepts with `--web.enable-remote-write-receiver`.
 - **Retention:** 14 days for both. Prometheus also stops at 10 GB. Loki has no size limit, so a
-  guest flooding syslog can fill the 32 GB disk before 14 days pass: add a Grafana alert on
-  the VM's disk usage.
+  guest flooding syslog can fill the 32 GB disk before 14 days pass. That's why a provisioned
+  alert, *obs root filesystem low on space*, fires when `/` has less than 15% free for
+  10 minutes (`observability_disk_free_min`, `observability_disk_alert_for`). It also fires
+  when obs's own host metrics stop arriving. Alloy collects those with
+  `prometheus.exporter.unix`.
 - **Only the collector is on the network:** Loki and Prometheus listen on `127.0.0.1`. Loki
   runs without auth, with its delete API on, so nothing outside the VM may reach it. Grafana
   (3000) is the only UI port.
@@ -102,7 +105,8 @@ Log in as `admin` with that password. It's stored in `/etc/grafana/admin_passwor
 (root:grafana, 0640), and Grafana reads it through its `$__file{}` provider, not from an
 environment variable: systemd warns that unit environment variables are exposed over D-Bus.
 Grafana applies it once, at first start. Prometheus
-and Loki are already set up as data sources.
+and Loki are already set up as data sources (UIDs `prometheus` and `loki`). The *Lab* folder
+holds the *Lab overview* dashboard and the disk alert, all provisioned from the repo.
 
 ## Send WALLIX's logs to it
 
@@ -134,6 +138,22 @@ In Grafana, go to **Explore**. Then:
 - **Alert rules:** Grafana → Alerting → New alert rule on a LogQL count, e.g. failed logins
   per five minutes. That's the SIEM-lite part.
 
+### Keep them as code
+
+Rules, dashboards and data sources are provisioned by `make obs`, so a rebuilt `obs` has
+them all.
+
+- **A dashboard:** build it in Grafana, then use *Export → Export as JSON* and save the file
+  in `ansible/roles/observability/files/dashboards/`. `make obs` copies every `.json` there to
+  `obs`, and deletes ones you removed from the repo. Provisioned dashboards can't be saved
+  from the UI (`allowUiUpdates: false`), so the repo stays the source.
+- **An alert rule:** add it to `ansible/roles/observability/templates/alerting.yaml.j2`.
+  Grafana's *Export* on a rule built in the UI gives the provisioning format
+  ([Grafana docs](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/)).
+- **Notifications:** rules only change state in Grafana until you add a *contact point*.
+  Where alerts go (email, a chat webhook) is your choice, and it comes with credentials, so
+  it isn't provisioned.
+
 ## Tested so far
 
 Exercised on macOS with the real binaries, downloaded checksum-verified from their releases
@@ -142,5 +162,15 @@ Exercised on macOS with the real binaries, downloaded checksum-verified from the
 - the rendered Alloy config passes `alloy fmt`, and the Loki config passes `-verify-config`;
 - RFC 5424 syslog over TCP and UDP arrived in Loki with the labels above;
 - OTLP metrics from two hosts arrived in Prometheus as two separate series.
+
+Grafana 13.2.4 (darwin-arm64, SHA-256-checked), with the role's rendered provisioning files
+and Alloy's host metrics feeding Prometheus:
+
+- both data sources came up with their fixed UIDs;
+- the alert rule loaded from the file, health `ok`, state inactive at 24.8% free;
+- with the threshold set above 100% it went to firing, with its summary;
+- the *Lab overview* dashboard landed in the *Lab* folder, and its three queries returned
+  data (the disk ratio, syslog lines per host, the log lines with their labels);
+- the role's dashboard tasks copied the repo's file and removed a stale one.
 
 Not yet run on the VM itself.

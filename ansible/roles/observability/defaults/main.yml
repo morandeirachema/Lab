@@ -16,6 +16,15 @@ observability_syslog_format: rfc5424
 # Debian 13, so the data would be lost on reboot and would eat the VM's memory.
 observability_loki_dir: /var/lib/loki
 
+# The provisioned alert on obs's own root filesystem: it fires when less than
+# this fraction is free for this long, or when obs's host metrics stop arriving.
+observability_disk_free_min: 0.15
+observability_disk_alert_for: 10m
+
+# Where the dashboards from files/dashboards/ go on obs; Grafana loads every
+# .json file there into its "Lab" folder.
+observability_dashboards_dir: /var/lib/grafana/dashboards/lab
+
 # Grafana's admin password, read from the environment of the machine running
 # Ansible and never stored in the repo. It goes to /etc/grafana/admin_password
 # (root:grafana 0640); Grafana applies it once, on first run.

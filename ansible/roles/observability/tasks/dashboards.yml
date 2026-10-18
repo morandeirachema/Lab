@@ -1,0 +1,33 @@
+---
+# Dashboards are code: build one in Grafana, export it as JSON (Share ->
+# Export) into files/dashboards/, and make obs ships it. Grafana re-reads the
+# directory on its own; a file removed from the repo is removed from obs.
+- name: Directory for the dashboards
+  ansible.builtin.file:
+    path: "{{ observability_dashboards_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy the dashboards from the repo
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ observability_dashboards_dir }}/"
+    mode: "0644"
+  loop: "{{ lookup('ansible.builtin.fileglob', 'dashboards/*.json', wantlist=True) }}"
+
+- name: Find the dashboards on obs
+  ansible.builtin.find:
+    paths: "{{ observability_dashboards_dir }}"
+    patterns: "*.json"
+  register: observability_dashboards_present
+
+- name: Remove dashboards that are no longer in the repo
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ observability_dashboards_present.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when: >-
+    item.path | basename not in
+    (lookup('ansible.builtin.fileglob', 'dashboards/*.json', wantlist=True) | map('basename') | list)
