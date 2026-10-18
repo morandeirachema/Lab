@@ -1,0 +1,16 @@
+---
+# The network of each routed gateway net in config/lab.yml (isolated nets have
+# no route), e.g. 10.10.10.1/24 -> 10.10.10.0/24. Needs the file loaded as
+# `lab`; pve_base (node routes) and tailscale (subnet routes) both use it.
+# Plain arithmetic: Jinja has no bitwise operators.
+lab_routed_nets: >-
+  {%- set out = [] -%}
+  {%- for net in lab.gateway.nets if not net.isolated | default(false) -%}
+  {%-   set ip, prefix = net.address.split('/') -%}
+  {%-   set o = ip.split('.') | map('int') | list -%}
+  {%-   set n = o[0] * 16777216 + o[1] * 65536 + o[2] * 256 + o[3] -%}
+  {%-   set base = n - (n % (2 ** (32 - (prefix | int)))) -%}
+  {%-   set octets = [base // 16777216, base // 65536 % 256, base // 256 % 256, base % 256] -%}
+  {%-   set _ = out.append((octets | join('.')) ~ '/' ~ prefix) -%}
+  {%- endfor -%}
+  {{ out }}

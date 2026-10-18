@@ -28,13 +28,11 @@ internet.
    ```yaml
    tailscale_enabled: true
    ```
-2. Make **one** node a subnet router for the LAN and the lab nets. Create
-   `ansible/inventory/host_vars/pve1.yml`:
-   ```yaml
-   tailscale_advertise_routes: [192.168.1.0/24, 10.10.10.0/24, 10.10.40.0/24]
-   ```
-   Every node already routes the lab nets through `labgw`: `pve_base` derives the routes
-   from `gateway.nets`.
+2. **One** node is the subnet router: `ansible/inventory/host_vars/pve1.yml` sets
+   `tailscale_subnet_router: true`. It advertises `lan.cidr` and every routed net in
+   `gateway.nets`, all read from `config/lab.yml` (`lab_routed_nets` in
+   `inventory/group_vars/all.yml`). Isolated nets such as `cyber` are never advertised.
+   Every node already routes the lab nets through `labgw`, from the same list.
 3. Generate a **one-off** (not reusable) auth key in the Tailscale admin console. That's
    Tailscale's own advice in [Securely handle an auth key](https://tailscale.com/docs/features/access-control/auth-keys/how-to/secure-auth-keys).
    Load it without it landing in your shell history, then:

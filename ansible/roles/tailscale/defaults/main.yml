@@ -13,8 +13,8 @@ tailscale_suite: trixie
 # MagicDNS to resolve its own mirrors.
 tailscale_accept_dns: false
 
-# Subnets this node advertises to your tailnet (makes it a subnet router).
-# Set it on ONE node in host_vars, e.g. host_vars/pve1.yml:
-#   tailscale_advertise_routes: [192.168.1.0/24, 10.10.10.0/24]
-# Each route must then be approved in the Tailscale admin console.
-tailscale_advertise_routes: []
+# The subnet router (one node: inventory/host_vars/pve1.yml) advertises the
+# LAN and every routed lab net, from config/lab.yml; isolated nets are never
+# advertised. Each route must then be approved in the Tailscale admin console.
+tailscale_subnet_router: false
+tailscale_advertise_routes: "{{ ([lab.lan.cidr] + lab_routed_nets) if tailscale_subnet_router | bool else [] }}"

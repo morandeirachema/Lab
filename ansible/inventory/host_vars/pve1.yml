@@ -1,0 +1,4 @@
+---
+# pve1 is the Tailscale subnet router: it advertises the LAN and every routed
+# lab net (roles/tailscale/defaults). Approve the routes in the admin console.
+tailscale_subnet_router: true
