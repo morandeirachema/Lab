@@ -78,6 +78,9 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   `observability.syslog_port` / `otlp_port` in `lab.yml` drive Alloy's listeners, the gateway's
   collector rules and Proxmox's metric server port (one value, three users).
   The nodes reach the lab nets through `pve_base` routes derived from `gateway.nets`.
+- Isolated nets: `gateway.nets[].isolated` (and `collector`) is read by the `lab_gateway`
+  templates (DHCP only, nothing forwarded, collector only on opt-in), `pve_base` (no route)
+  and `terraform/locals.tf` (not with `internet: true`, not the obs vnet).
 - OVA path: `ova-unpack.sh` extracts into `artifacts/ova/<name>/` (git-ignored) and prints
   the `lab.yml` entry. `vms.tf` uploads each disk as `proxmox_virtual_environment_file`
   (`content_type = "import"`) and attaches it with `disk.import_from`.

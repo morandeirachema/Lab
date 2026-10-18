@@ -98,9 +98,33 @@ vnets, in `gateway.nets` order. It runs dnsmasq (DHCP and DNS) and nftables
 | lab net → internet | only if `internet: true`, and never to private ranges |
 | lab net → home LAN | dropped |
 | lab net → another lab net | dropped |
-| any other lab net → `obs` VM | only the collector ports: syslog 514 tcp/udp, OTLP 4318 tcp |
-| anything → `cyber` | not routed at all |
+| any other routed lab net → `obs` VM | only the collector ports: syslog 514 tcp/udp, OTLP 4318 tcp |
+| isolated net (`isolated: true`) → anything, and anything → it | dropped, the LAN included; nothing is forwarded |
+| isolated net → `labgw` itself | a DHCP lease only: no DNS, no ping, no SSH |
+| isolated net → `obs` VM | only with `collector: true` on that net |
 | DHCP on the home LAN | never (`no-dhcp-interface=eth0`) |
+
+**Isolated nets.** A net with `isolated: true` in `gateway.nets` gets an interface on
+`labgw` for one reason: DHCP. Proxmox's own SDN DHCP would avoid that leg, but the
+[SDN docs](https://pve.proxmox.com/pve-docs/chapter-pvesdn.html) say "Currently only Simple
+Zones have support for automatic DHCP", and this lab's zone is VLAN or VXLAN. Many
+vulnerable OVAs take their address from DHCP, so `labgw` hands out leases and nothing else:
+
+- The lease carries no router and no DNS server. In dnsmasq(8)'s words, "Options for which
+  dnsmasq normally provides default values can be omitted by defining the option with no
+  data."
+- `dhcp-ignore-names` keeps the names the guests claim out of the lab's DNS, which the LAN
+  queries.
+- The nodes get no route to it (`pve_base`), and the Mac needs none: you reach its guests
+  through the Proxmox console.
+
+With `vlan`, isolation also depends on the switch: it must carry the net's tag between the
+nodes and have no IP interface (SVI) on that VLAN.
+
+**`internet: false` blocks connections, not lookups.** A routed net without internet
+still resolves public names through `labgw`'s dnsmasq, which forwards to the Pi-hole. That
+is a path out (DNS tunnelling), acceptable for the PAM lab. An isolated net gets no DNS at
+all.
 
 **What is and isn't confirmed.** Proxmox staff confirm that a container shares the
 host's kernel, so its netfilter modules must be loaded on the host. `pve_base` does

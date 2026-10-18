@@ -45,6 +45,15 @@ resource "terraform_data" "config_checks" {
       error_message = "config/lab.yml: every gateway.nets[].vnet must be one of sdn.vnets."
     }
     precondition {
+      condition     = alltrue([for n in local.lab.gateway.nets : !(try(n.isolated, false) && try(n.internet, false))])
+      error_message = "config/lab.yml: a gateway net is either isolated or has internet: true, not both."
+    }
+    precondition {
+      # the collector must be reachable and must reach its package mirrors
+      condition     = !local.obs_enabled || !try(one([for n in local.lab.gateway.nets : n if n.vnet == local.obs.vnet]).isolated, false)
+      error_message = "config/lab.yml: the observability vnet can't be an isolated gateway net."
+    }
+    precondition {
       # vms.tf merges every lab's VMs into one map keyed by name, and merge() keeps
       # the last of two equal keys without a word: the other VM would just vanish.
       condition     = length(distinct([for vm in local.all_lab_vms : vm.name])) == length(local.all_lab_vms)

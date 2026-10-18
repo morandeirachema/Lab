@@ -24,8 +24,17 @@ no-dhcp-interface=eth0
 interface=eth{{ loop.index }}
 {% if net.dhcp | default([]) | length == 2 %}
 dhcp-range=set:{{ net.vnet }},{{ net.dhcp[0] }},{{ net.dhcp[1] }},12h
+{% if net.isolated | default(false) %}
+# Isolated: an address and nothing more. An option with no value is not sent
+# (dnsmasq(8)): no router, no DNS server. Names the guests claim stay out of
+# the lab's DNS, which the LAN queries.
+dhcp-option=tag:{{ net.vnet }},option:router
+dhcp-option=tag:{{ net.vnet }},option:dns-server
+dhcp-ignore-names=tag:{{ net.vnet }}
+{% else %}
 dhcp-option=tag:{{ net.vnet }},option:router,{{ net.address.split('/')[0] }}
 dhcp-option=tag:{{ net.vnet }},option:dns-server,{{ net.address.split('/')[0] }}
+{% endif %}
 {% if lab.sdn.type == 'vxlan' %}
 dhcp-option=tag:{{ net.vnet }},option:mtu,{{ lab.sdn.vxlan_mtu }}
 {% endif %}

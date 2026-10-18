@@ -2,16 +2,21 @@
 # {{ ansible_managed }}
 # Source: config/lab.yml (gateway.nets). Interfaces: eth0 = LAN, eth1.. = lab nets.
 #
-#   LAN (MGMT_NET) -> lab nets          allowed
+#   LAN (MGMT_NET) -> lab nets          allowed, except isolated nets
 #   lab net -> internet                 only nets with internet: true, never private ranges
 #   lab net -> LAN, lab net -> lab net  dropped
+#   isolated net -> labgw               DHCP only; nothing is forwarded in or out
 flush ruleset
 
 define LAN_IF   = "eth0"
 define MGMT_NET = {{ lab.gateway.mgmt_cidr | default(lab.lan.cidr) }}
 define PRIVATE  = { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16 }
+{# routed nets get DHCP and DNS from labgw; isolated nets get DHCP only #}
 {% set lab_ifs = [] %}
-{% for net in lab.gateway.nets %}{% set _ = lab_ifs.append('"eth' ~ loop.index ~ '"') %}{% endfor %}
+{% set iso_ifs = [] %}
+{% for net in lab.gateway.nets %}
+{%   set _ = (iso_ifs if net.isolated | default(false) else lab_ifs).append('"eth' ~ loop.index ~ '"') %}
+{% endfor %}
 
 table inet filter {
   chain input {
@@ -19,6 +24,11 @@ table inet filter {
     iif "lo" accept
     ct state established,related accept
     ct state invalid drop
+{% if iso_ifs %}
+    # isolated nets: a DHCP lease and nothing else from labgw, not DNS, not ping
+    iifname { {{ iso_ifs | join(', ') }} } udp dport 67 accept
+    iifname { {{ iso_ifs | join(', ') }} } drop
+{% endif %}
     meta l4proto { icmp, ipv6-icmp } accept
     iifname $LAN_IF ip saddr $MGMT_NET tcp dport 22 accept
     iifname $LAN_IF ip saddr $MGMT_NET meta l4proto { tcp, udp } th dport 53 accept
@@ -34,18 +44,23 @@ table inet filter {
     ct state established,related accept
     ct state invalid drop
 {% for net in lab.gateway.nets %}
+{%   if net.isolated | default(false) %}
+    # {{ net.vnet }}: eth{{ loop.index }}, {{ net.address }}, isolated: no rule, so nothing in or out
+{%   else %}
     # {{ net.vnet }}: eth{{ loop.index }}, {{ net.address }}, internet {{ 'yes' if net.internet else 'no' }}
     iifname $LAN_IF oifname "eth{{ loop.index }}" ip saddr $MGMT_NET accept
-{% if net.internet %}
+{%     if net.internet %}
     iifname "eth{{ loop.index }}" oifname $LAN_IF ip daddr != $PRIVATE accept
-{% endif %}
+{%     endif %}
+{%   endif %}
 {% endfor %}
 {% if lab.observability is defined and lab.observability.enabled | default(false) %}
 {%   set obs = lab.observability %}
 {%   set obs_ip = hostvars['obs'].ansible_host %}
-    # every other lab net -> the observability collector ({{ obs_ip }}): logs and metrics only
+    # the other lab nets -> the observability collector ({{ obs_ip }}): logs and metrics only.
+    # Isolated nets only with collector: true.
 {%   for net in lab.gateway.nets %}
-{%     if net.vnet != obs.vnet %}
+{%     if net.vnet != obs.vnet and net.collector | default(not (net.isolated | default(false))) %}
     iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} tcp dport { {{ obs.syslog_port }}, {{ obs.otlp_port }} } accept
     iifname "eth{{ loop.index }}" ip daddr {{ obs_ip }} udp dport {{ obs.syslog_port }} accept
 {%     endif %}
@@ -68,7 +83,9 @@ table ip nat {
     oifname $LAN_IF masquerade
 {% if lab.gateway.snat_from_lan | default(false) %}
 {% for net in lab.gateway.nets %}
+{%   if not net.isolated | default(false) %}
     oifname "eth{{ loop.index }}" ip saddr $MGMT_NET masquerade
+{%   endif %}
 {% endfor %}
 {% endif %}
   }

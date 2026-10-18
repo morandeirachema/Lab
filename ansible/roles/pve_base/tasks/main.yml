@@ -106,8 +106,9 @@
   changed_when: false
 
 # --- Routes to the lab nets ---------------------------------------------------
-# Network address of each gateway net, e.g. 10.10.10.1/24 -> 10.10.10.0/24
-# (plain arithmetic: Jinja has no bitwise operators).
+# Network address of each routed gateway net, e.g. 10.10.10.1/24 -> 10.10.10.0/24
+# (plain arithmetic: Jinja has no bitwise operators). Isolated nets get no
+# route: labgw forwards nothing to them.
 - name: The lab nets can be routed (config/lab.yml loaded, labgw in the inventory)
   ansible.builtin.assert:
     that:
@@ -127,7 +128,7 @@
     pve_base_lab_net_routes: >-
       {%- set out = [] -%}
       {%- if pve_base_lab_routes | bool -%}
-      {%-   for net in lab.gateway.nets -%}
+      {%-   for net in lab.gateway.nets if not net.isolated | default(false) -%}
       {%-     set ip, prefix = net.address.split('/') -%}
       {%-     set o = ip.split('.') | map('int') | list -%}
       {%-     set n = o[0] * 16777216 + o[1] * 65536 + o[2] * 256 + o[3] -%}
