@@ -7,6 +7,14 @@ locals {
 
   lan_prefix = split("/", local.lab.lan.cidr)[1]
   vxlan      = local.lab.sdn.type == "vxlan"
+
+  # Every lab's VMs, and every guest's VMID, for the uniqueness checks below.
+  all_lab_vms = flatten([for l in values(local.lab.labs) : l.vms])
+  guest_ids = concat(
+    [local.lab.gateway.vmid],
+    local.obs_enabled ? [local.obs.vmid] : [],
+    [for vm in local.all_lab_vms : vm.vmid],
+  )
 }
 
 # Fail the plan early when config/lab.yml is inconsistent.
@@ -35,6 +43,16 @@ resource "terraform_data" "config_checks" {
     precondition {
       condition     = alltrue([for n in local.lab.gateway.nets : contains(keys(local.lab.sdn.vnets), n.vnet)])
       error_message = "config/lab.yml: every gateway.nets[].vnet must be one of sdn.vnets."
+    }
+    precondition {
+      # vms.tf merges every lab's VMs into one map keyed by name, and merge() keeps
+      # the last of two equal keys without a word: the other VM would just vanish.
+      condition     = length(distinct([for vm in local.all_lab_vms : vm.name])) == length(local.all_lab_vms)
+      error_message = "config/lab.yml: VM names must be unique across all labs (labs.*.vms[].name)."
+    }
+    precondition {
+      condition     = length(distinct(local.guest_ids)) == length(local.guest_ids)
+      error_message = "config/lab.yml: every guest needs its own VMID (gateway.vmid, observability.vmid, labs.*.vms[].vmid)."
     }
   }
 }
