@@ -1,0 +1,277 @@
+---
+# Forgejo with SQLite, and a Forgejo Actions runner on the same VM, following
+# Forgejo's binary installation guide (forgejo.org/docs/v15.0/admin/installation/binary/).
+# Every secret is generated on the VM, lives in a file, and never passes
+# through a command line.
+
+# --- Packages and users ------------------------------------------------------------
+- name: Install git (Forgejo's dependency) and Docker (for the runner's jobs)
+  ansible.builtin.apt:
+    name: [git, docker.io]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the git group
+  ansible.builtin.group:
+    name: git
+    system: true
+
+# The guide's: adduser --system --shell /bin/bash --group --disabled-password --home /home/git git
+- name: Create the git user Forgejo runs as
+  ansible.builtin.user:
+    name: git
+    group: git
+    system: true
+    shell: /bin/bash
+    comment: Git Version Control
+    home: /home/git
+    create_home: true
+    password_lock: true
+
+- name: Create the runner user, in the docker group because it starts the job containers
+  ansible.builtin.user:
+    name: runner
+    system: true
+    shell: /usr/sbin/nologin
+    home: /home/runner
+    create_home: true
+    groups: [docker]
+    append: true
+
+# --- Forgejo ------------------------------------------------------------------------
+- name: Install the Forgejo binary (checked against the release's SHA-256)
+  ansible.builtin.get_url:
+    url: "{{ forgejo_download }}/v{{ forgejo_version }}/forgejo-{{ forgejo_version }}-linux-amd64"
+    dest: /usr/local/bin/forgejo
+    checksum: "sha256:{{ forgejo_sha256 }}"
+    mode: "0755"
+  notify: Restart forgejo
+
+# The guide: /var/lib/forgejo git:git 750. /etc/forgejo is root:git and, with
+# the installer locked and the secrets in files, read-only for Forgejo.
+- name: Create Forgejo's data directory
+  ansible.builtin.file:
+    path: /var/lib/forgejo
+    state: directory
+    owner: git
+    group: git
+    mode: "0750"
+
+- name: Create Forgejo's configuration directory
+  ansible.builtin.file:
+    path: /etc/forgejo
+    state: directory
+    owner: root
+    group: git
+    mode: "0750"
+
+- name: Look for Forgejo's secrets
+  ansible.builtin.stat:
+    path: "/etc/forgejo/{{ item.file }}"
+  loop:
+    - {name: SECRET_KEY, file: secret_key}
+    - {name: INTERNAL_TOKEN, file: internal_token}
+    - {name: JWT_SECRET, file: jwt_secret}
+  register: forgejo_secret_files
+
+# Generated once: losing SECRET_KEY makes the data it encrypted unreadable.
+- name: Generate the missing secrets (forgejo generate secret)
+  ansible.builtin.command: /usr/local/bin/forgejo generate secret {{ item.item.name }}
+  loop: "{{ forgejo_secret_files.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  register: forgejo_new_secrets
+  changed_when: true
+  no_log: true
+
+- name: Store them, root:git 0640
+  ansible.builtin.copy:
+    dest: "/etc/forgejo/{{ item.item.item.file }}"
+    content: "{{ item.stdout | trim }}"
+    owner: root
+    group: git
+    mode: "0640"
+  loop: "{{ forgejo_new_secrets.results }}"
+  loop_control:
+    label: "{{ item.item.item.file }}"
+  when: item.stdout is defined
+  no_log: true
+  notify: Restart forgejo
+
+- name: Write app.ini
+  ansible.builtin.template:
+    src: app.ini.j2
+    dest: /etc/forgejo/app.ini
+    owner: root
+    group: git
+    mode: "0640"
+  notify: Restart forgejo
+
+- name: Install Forgejo's systemd unit
+  ansible.builtin.template:
+    src: forgejo.service.j2
+    dest: /etc/systemd/system/forgejo.service
+    mode: "0644"
+  notify: Restart forgejo
+
+- name: Start Forgejo at boot
+  ansible.builtin.systemd_service:
+    name: forgejo
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Apply Forgejo changes now
+  ansible.builtin.meta: flush_handlers
+
+# The web process creates the database on start; the CLI below needs it.
+- name: Wait for Forgejo to answer its health check
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ forgejo_http_port }}/api/healthz"
+  register: forgejo_health
+  until: forgejo_health.status == 200
+  retries: 30
+  delay: 2
+
+# --- The first admin ----------------------------------------------------------------
+- name: List Forgejo's admins
+  ansible.builtin.command: /usr/local/bin/forgejo --config /etc/forgejo/app.ini admin user list --admin
+  become: true
+  become_user: git
+  environment:
+    FORGEJO_WORK_DIR: /var/lib/forgejo
+  register: forgejo_admins
+  changed_when: false
+
+# Columns: ID, Username, Email, IsActive, IsAdmin, 2FA (cmd/admin_user_list.go).
+- name: Create the first admin with a generated password
+  when: forgejo_admin_user not in (forgejo_admins.stdout_lines[1:] | map('split') | map(attribute=1) | list)
+  block:
+    - name: Create the admin account (forgejo admin user create --random-password)
+      ansible.builtin.command: >-
+        /usr/local/bin/forgejo --config /etc/forgejo/app.ini admin user create
+        --admin --username {{ forgejo_admin_user }}
+        --email {{ forgejo_admin_user }}@{{ inventory_hostname }}.{{ lab.gateway.domain }}
+        --random-password --random-password-length 24
+      become: true
+      become_user: git
+      environment:
+        FORGEJO_WORK_DIR: /var/lib/forgejo
+      register: forgejo_admin_created
+      changed_when: true
+      no_log: true
+
+    # cmd/admin_user_create.go prints: generated random password is '<password>'
+    - name: Save the generated password on this machine (0600)
+      ansible.builtin.copy:
+        dest: "{{ forgejo_admin_password_file }}"
+        content: >-
+          {{ (forgejo_admin_created.stdout_lines
+              | select('match', 'generated random password is ') | first)[30:-1] }}
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+# --- The runner ---------------------------------------------------------------------
+- name: Install the runner binary (checked against the release's SHA-256)
+  vars:
+    forgejo_runner_file: forgejo-runner-{{ forgejo_runner_version }}-linux-amd64
+  ansible.builtin.get_url:
+    url: "{{ forgejo_runner_download }}/v{{ forgejo_runner_version }}/{{ forgejo_runner_file }}"
+    dest: /usr/local/bin/forgejo-runner
+    checksum: "sha256:{{ forgejo_runner_sha256 }}"
+    mode: "0755"
+  notify: Restart forgejo-runner
+
+- name: Create the runner's configuration directory
+  ansible.builtin.file:
+    path: /etc/forgejo-runner
+    state: directory
+    owner: root
+    group: runner
+    mode: "0750"
+
+- name: Look for the runner's shared secret
+  ansible.builtin.stat:
+    path: /etc/forgejo/runner_secret
+  register: forgejo_runner_secret_file
+
+# Offline registration (forgejo.org/docs/v15.0/admin/actions/registration/):
+# one 40-hex secret, known to both Forgejo and the runner. generate-secret
+# loads no settings, so it may run as root; the commands that do refuse root.
+- name: Generate the runner's secret (forgejo forgejo-cli actions generate-secret)
+  ansible.builtin.command: /usr/local/bin/forgejo forgejo-cli actions generate-secret
+  register: forgejo_runner_new_secret
+  when: not forgejo_runner_secret_file.stat.exists
+  changed_when: true
+  no_log: true
+
+# No trailing newline: Forgejo reads --secret-file as is and wants exactly 40 hex digits.
+- name: Store Forgejo's copy, root:git 0640
+  ansible.builtin.copy:
+    dest: /etc/forgejo/runner_secret
+    content: "{{ forgejo_runner_new_secret.stdout | trim }}"
+    owner: root
+    group: git
+    mode: "0640"
+  when: not forgejo_runner_secret_file.stat.exists
+  no_log: true
+
+- name: Read it back
+  ansible.builtin.slurp:
+    src: /etc/forgejo/runner_secret
+  register: forgejo_runner_secret
+  no_log: true
+
+# Each service reads only its own copy: the runner is not in the git group.
+- name: Store the runner's copy, root:runner 0640
+  ansible.builtin.copy:
+    dest: /etc/forgejo-runner/token
+    content: "{{ forgejo_runner_secret.content | b64decode | trim }}"
+    owner: root
+    group: runner
+    mode: "0640"
+  no_log: true
+  notify: Restart forgejo-runner
+
+# Idempotent, and prints the runner's UUID (cmd/forgejo/actions.go).
+- name: Register the runner with Forgejo (global, by the shared secret)
+  ansible.builtin.command: >-
+    /usr/local/bin/forgejo --config /etc/forgejo/app.ini forgejo-cli actions register
+    --name {{ inventory_hostname }} --secret-file /etc/forgejo/runner_secret
+  become: true
+  become_user: git
+  environment:
+    FORGEJO_WORK_DIR: /var/lib/forgejo
+  register: forgejo_runner_registration
+  changed_when: false
+
+- name: Keep the runner's UUID
+  ansible.builtin.set_fact:
+    forgejo_runner_uuid: "{{ forgejo_runner_registration.stdout | trim }}"
+
+- name: Write the runner's configuration
+  ansible.builtin.template:
+    src: runner-config.yml.j2
+    dest: /etc/forgejo-runner/config.yml
+    owner: root
+    group: runner
+    mode: "0640"
+  notify: Restart forgejo-runner
+
+- name: Install the runner's systemd unit
+  ansible.builtin.template:
+    src: forgejo-runner.service.j2
+    dest: /etc/systemd/system/forgejo-runner.service
+    mode: "0644"
+  notify: Restart forgejo-runner
+
+- name: Start the runner at boot
+  ansible.builtin.systemd_service:
+    name: forgejo-runner
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Declaration | (YAML) | `config/lab.yml`, `ansible/inventory/hosts.yml` | The lab itself: LAN, segments, pools, gateway, every lab's guests; all host addresses |
 | Node configuration | Ansible | `ansible/roles/pve_base` | Repositories, upgrades, tools, swappiness, ZFS ARC, gateway kernel modules, SSH, static routes |
-| DevOps lab | Ansible | `ansible/roles/k3s` | k3s from its checked release binary: server, agents, the kubeconfig on the Mac |
+| DevOps lab | Ansible | `ansible/roles/k3s`, `ansible/roles/forgejo` | k3s and Forgejo with its runner, from checked release binaries; the kubeconfig and the forge's first admin password on the Mac |
 | Cluster prerequisites | Ansible | `ansible/roles/pve_iac` | `terraform@pve`, the `Terraform` role, its API token, `import` content on `local` |
 | Proxmox objects | OpenTofu | `terraform/` | SDN zone and vnets, pools, the container template, the gateway container, uploaded disk images, lab VMs from images or from the Debian cloud image, `obs`, NAS storage and backup jobs |
 | Inside the gateway | Ansible | `ansible/roles/lab_gateway` | dnsmasq and nftables, rendered from `config/lab.yml` |
@@ -38,6 +38,7 @@ against the provider's real schema, without touching the cluster.
 | Two-factor login for the web UI | Enrolling a TOTP secret is done by whoever holds the authenticator ([07](07-remote-management.md#hardening-checklist)) |
 | Accepting SSH host keys | First `ssh` to each node, `labgw`, `obs` and the DevOps VMs; Ansible checks host keys and won't accept them silently |
 | Downloading target images for the range | Third-party downloads, each with its own terms; `make unpack` takes over from the file ([11](11-cyber-range.md#build-it)) |
+| Forgejo's first admin login | Forgejo requires a new password for a created user at first login; `make devops` saves the generated one ([13](13-devops-lab.md#the-forge)) |
 | Kali's first password change | Inside the guest, from the Proxmox console: the range has no path from the Mac, by design ([11](11-cyber-range.md#build-it)) |
 | Turning on `observability.metrics_push` | Proxmox refuses a metric server nobody answers, so it's created after `make obs` ([10](10-observability.md#build-it)) |
 | WALLIX first boot: wizard, network, license | Inside each appliance's console; the license comes from WALLIX Support ([06](06-wallix-lab.md)) |
@@ -83,7 +84,8 @@ make apply                       # Proxmox's metric server (needs Alloy up)
 
 # --- The DevOps lab (13-devops-lab.md)
 make lab LAB=devops CMD=start
-make devops                      # k3s on k3s1 + k3s2; kubeconfig → ~/.config/lab/kubeconfig
+make devops                      # k3s on k3s1 + k3s2, Forgejo + runner on forge; credentials → ~/.config/lab/
+# by hand: Forgejo's first login, which makes you replace the generated admin password
 
 # --- Use it
 make lab LAB=wallix CMD=start    # by hand: WALLIX's first-boot wizard and license, in its console

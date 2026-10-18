@@ -1,9 +1,11 @@
 ---
-# The DevOps lab's VMs (terraform/cloud_vms.tf): security updates, then k3s,
-# the server first so the agents can read its join token.
+# The DevOps lab's VMs (terraform/cloud_vms.tf): security updates, then k3s
+# (the server first, so the agents can read its join token), then Forgejo
+# with its Actions runner.
 #
 #   make lab LAB=devops CMD=start && make devops
 #   export KUBECONFIG=~/.config/lab/kubeconfig && kubectl get nodes
+#   open http://10.10.20.20:3000/   (labadmin; ~/.config/lab/forgejo-admin-password)
 - name: Security updates on the DevOps VMs
   hosts: devops
   roles:
@@ -32,3 +34,13 @@
     - role: k3s
       vars:
         k3s_role: agent
+
+- name: The forge
+  hosts: forgejo
+  pre_tasks:
+    - name: Load config/lab.yml (the lab domain for the admin's address)
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../config/lab.yml"
+        name: lab
+  roles:
+    - role: forgejo

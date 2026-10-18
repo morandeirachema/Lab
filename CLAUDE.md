@@ -55,8 +55,8 @@ zone/vnets, pools, gateway, NAS, `labs.<lab>.vms`). `ansible/inventory/hosts.yml
 
 **Layers.**
 - Ansible roles configure hosts: `pve_base` per node, `pve_iac` once per cluster,
-  `lab_gateway` inside the gateway container, `observability` on `obs`, `k3s` on the DevOps
-  VMs, `control_node` on the Mac, and `tailscale`.
+  `lab_gateway` inside the gateway container, `observability` on `obs`, `k3s` and `forgejo` on
+  the DevOps VMs, `control_node` on the Mac, and `tailscale`.
 - OpenTofu (`bpg/proxmox`, locked) creates the Proxmox objects: SDN, pools, the gateway
   container, disk uploads, VMs, and NAS storage/backup jobs.
 - `scripts/` does the imperative bits:

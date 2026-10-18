@@ -34,7 +34,8 @@ waits for pve3 (phase 4).
   - Lab VMs can be built from the Debian cloud image with cloud-init (`cloud_init: true`).
   - A two-node k3s cluster runs on them, installed by `make devops`
     ([13](13-devops-lab.md)).
-- **Next:** a Git forge with CI runners. Prometheus and Grafana already run on `obs`.
+  - A Forgejo forge with an Actions runner (Docker jobs), from the same `make devops`.
+- **Next:** CI that deploys into k3s. Prometheus and Grafana already run on `obs`.
 - No certificate depends on it. The plan dropped the **CKS** on 13 September 2026 and keeps
   the **CKA** only as a line already on the CV.
 

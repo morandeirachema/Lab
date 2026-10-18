@@ -152,10 +152,14 @@ def test_apps_come_from_the_inventory(settings):
 
 def test_nested_inventory_groups(settings):
     assert labtui.inventory_hosts(settings.inventory, "k3s_server") == {"k3s1": "10.10.20.11"}
-    assert set(labtui.inventory_hosts(settings.inventory, "devops")) == {"k3s1", "k3s2"}
+    children = settings.inventory["all"]["children"]["devops"]["children"]
+    expected = {h for g in children.values() for h in g["hosts"]}
+    assert set(labtui.inventory_hosts(settings.inventory, "devops")) == expected >= {"k3s1", "k3s2"}
     assert labtui.inventory_hosts(settings.inventory, "nonexistent") == {}
     names = [a.name for a in labtui.build_apps(settings)]
     assert "Kubernetes API · k3s1" in names
+    forge = next(a for a in labtui.build_apps(settings) if a.name == "Forgejo · forge")
+    assert forge.url == "http://10.10.20.20:3000/" and forge.health == "/api/healthz"
 
 
 def test_workflows_are_the_makefile_targets():

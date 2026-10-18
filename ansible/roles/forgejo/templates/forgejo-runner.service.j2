@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+# The runner's own unit (contrib/forgejo-runner.service, v13.2.0), with the
+# config moved to /etc/forgejo-runner.
+[Unit]
+Description=Forgejo Runner
+Documentation=https://forgejo.org/docs/latest/admin/actions/
+After=docker.service
+
+[Service]
+ExecStart=/usr/local/bin/forgejo-runner daemon -c /etc/forgejo-runner/config.yml
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# This user and working directory must already exist
+User=runner
+WorkingDirectory=/home/runner
+Restart=on-failure
+# allow configured shutdown_timeout to be effective, rather than overridden by systemd
+TimeoutStopSec=infinity
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

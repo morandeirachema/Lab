@@ -311,6 +311,8 @@ def build_apps(settings: Settings) -> list[AppEntry]:
         apps.append(AppEntry("Alloy: OTLP receiver", ip, int(obs.get("otlp_port", 4318))))
     for name, ip in inventory_hosts(inv, "k3s_server").items():
         apps.append(AppEntry(f"Kubernetes API · {name}", ip, 6443, ssh=name))
+    for name, ip in inventory_hosts(inv, "forgejo").items():
+        apps.append(AppEntry(f"Forgejo · {name}", ip, 3000, url=f"http://{ip}:3000/", ssh=name, health="/api/healthz"))
     for name, ip in inventory_hosts(inv, "nas").items():
         apps.append(AppEntry(f"Pi-hole DNS · {name}", ip, 53))
         if (lab.get("nas") or {}).get("enabled"):
@@ -323,7 +325,7 @@ def check_app(app: AppEntry, timeout: float = 2.0) -> tuple[bool, str]:
         try:
             with urllib.request.urlopen(f"http://{app.host}:{app.port}{app.health}", timeout=timeout) as r:
                 body = json.load(r)
-            return True, f"HTTP {r.status} " + ", ".join(f"{k} {v}" for k, v in body.items() if k in ("database", "version"))
+            return True, f"HTTP {r.status} " + ", ".join(f"{k} {v}" for k, v in body.items() if k in ("database", "version", "status"))
         except (urllib.error.URLError, OSError, ValueError) as e:
             return False, str(getattr(e, "reason", e))
     try:

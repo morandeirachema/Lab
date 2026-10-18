@@ -69,7 +69,7 @@ gateway: ## Configure the lab gateway (dnsmasq, nftables) after `make apply`
 obs: ## Configure the observability VM (export GRAFANA_ADMIN_PASSWORD for its first run)
 	cd ansible && ansible-playbook playbooks/observability.yml
 
-devops: ## The DevOps lab after make apply and its start: security updates, then k3s (kubeconfig → ~/.config/lab/)
+devops: ## The DevOps lab after make apply and its start: updates, k3s, Forgejo + runner (credentials → ~/.config/lab/)
 	cd ansible && ansible-playbook playbooks/devops.yml
 
 qdevice: ## Two-node quorum: prepare the nodes and the qdevice host, then run pvecm qdevice setup

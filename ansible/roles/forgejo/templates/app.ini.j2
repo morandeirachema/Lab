@@ -1,0 +1,42 @@
+; {{ ansible_managed }}
+; Forgejo's configuration (forgejo.org/docs/v15.0/admin/config-cheat-sheet/).
+; The secrets live in their own files under /etc/forgejo (the *_URI keys), so
+; this file holds none and Forgejo never needs to write it.
+APP_NAME = Lab forge
+RUN_USER = git
+RUN_MODE = prod
+WORK_PATH = /var/lib/forgejo
+
+[server]
+PROTOCOL = http
+DOMAIN = {{ ansible_host }}
+SSH_DOMAIN = {{ ansible_host }}
+HTTP_ADDR = 0.0.0.0
+HTTP_PORT = {{ forgejo_http_port }}
+ROOT_URL = http://{{ ansible_host }}:{{ forgejo_http_port }}/
+DISABLE_SSH = false
+START_SSH_SERVER = false
+LFS_START_SERVER = false
+OFFLINE_MODE = true
+
+[database]
+DB_TYPE = sqlite3
+PATH = /var/lib/forgejo/data/forgejo.db
+
+[security]
+INSTALL_LOCK = true
+SECRET_KEY_URI = file:/etc/forgejo/secret_key
+INTERNAL_TOKEN_URI = file:/etc/forgejo/internal_token
+
+[oauth2]
+JWT_SECRET_URI = file:/etc/forgejo/jwt_secret
+
+[service]
+DISABLE_REGISTRATION = true
+
+[actions]
+ENABLED = true
+
+[log]
+MODE = console
+LEVEL = info

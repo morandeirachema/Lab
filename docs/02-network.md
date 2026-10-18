@@ -35,7 +35,7 @@ your router's DHCP pool.
 | Segment | Tag | Subnet | Gateway / DHCP | Internet | Status |
 |---|---|---|---|---|---|
 | `pam` | 10 | `10.10.10.0/24` | `.1`, leases `.100–.199` | no | phase 1 |
-| `devops` | 20 | `10.10.20.0/24` | `.1`, leases `.100–.199`; `k3s1`/`k3s2` static at `.11`/`.12` | yes | in code ([13](13-devops-lab.md)) |
+| `devops` | 20 | `10.10.20.0/24` | `.1`, leases `.100–.199`; `k3s1`/`k3s2` static at `.11`/`.12`, `forge` at `.20` | yes | in code ([13](13-devops-lab.md)) |
 | `cyber` | 30 | `10.10.30.0/24` | `.1` leases `.100–.199` and nothing else (`isolated: true`) | never | in code ([11](11-cyber-range.md)) |
 | `obs` | 40 | `10.10.40.0/24` | `.1`; the `obs` VM is static at `.10` | yes (packages) | in code ([10](10-observability.md)) |
 

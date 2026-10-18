@@ -139,7 +139,7 @@ Sources and BIOS settings are in [docs/01](docs/01-hardware.md).
 | Lab | Segment | Guests | Status | Certifications it serves |
 |---|---|---|---|---|
 | **WALLIX** | `pam` (no internet) | the WALLIX OVAs, imported with `make unpack` | 🟢 in code | WALLIX WCE-P |
-| **DevOps** | `devops` (internet) | k3s on two cloud-image VMs (`make devops`); a Git forge with CI next | 🟢 in code | practice; none in the plan (CKS dropped) |
+| **DevOps** | `devops` (internet) | k3s on two cloud-image VMs, Forgejo with an Actions runner (`make devops`) | 🟢 in code | practice; none in the plan (CKS dropped) |
 | **Cyber range** | `cyber` (isolated) | Kali from its signed QEMU image (`make kali`), vulnerable targets via `make unpack` | 🟢 in code | CEH |
 
 Details are in [docs/06](docs/06-wallix-lab.md), [docs/11](docs/11-cyber-range.md), [docs/13](docs/13-devops-lab.md) and [docs/08](docs/08-roadmap.md). [docs/12](docs/12-cissp-projects.md) turns the lab into eight CISSP projects, one per domain.
@@ -160,7 +160,7 @@ Details are in [docs/06](docs/06-wallix-lab.md), [docs/11](docs/11-cyber-range.m
 | 10 | [Observability](docs/10-observability.md) | SIEM-lite in 4 GB: WALLIX syslog and Proxmox metrics into Loki, Prometheus and Grafana |
 | 11 | [Cyber range](docs/11-cyber-range.md) | the isolated range for CEH: Kali, targets, rules of engagement, the isolation test, CEH v13 modules |
 | 12 | [CISSP projects](docs/12-cissp-projects.md) | one project per CISSP domain, built on the lab's own controls |
-| 13 | [DevOps lab](docs/13-devops-lab.md) | k3s on cloud-image VMs, from a checked release binary; the kubeconfig |
+| 13 | [DevOps lab](docs/13-devops-lab.md) | k3s and Forgejo with CI on cloud-image VMs, from checked release binaries |
 
 ## 📁 Repository map
 
@@ -169,7 +169,7 @@ config/lab.yml            the lab, declared once
 ansible/
   inventory/              hosts and addresses (read by OpenTofu too)
   playbooks/              pve-postinstall · pve-iac · lab-gateway · observability · devops · qdevice · remote-access · control-node
-  roles/                  pve_base · pve_iac · lab_gateway · observability · k3s · debian_autoupdates · qnetd · tailscale · control_node
+  roles/                  pve_base · pve_iac · lab_gateway · observability · k3s · forgejo · debian_autoupdates · qnetd · tailscale · control_node
 terraform/                provider · sdn · pools · gateway · observability · vms · cloud_vms · nas (bpg/proxmox, locked)
 scripts/
   ova-unpack.sh           OVA → verified disks + the lab.yml entry

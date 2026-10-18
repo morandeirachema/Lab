@@ -1,0 +1,26 @@
+# {{ ansible_managed }}
+# Keys from the runner's config.example.yaml (v13.2.0). The connection's token
+# is read from a file (token_url), so this file holds no secret.
+log:
+  level: info
+  job_level: info
+
+runner:
+  capacity: {{ forgejo_runner_capacity }}
+  timeout: 3h
+  labels:
+{% for label in forgejo_runner_labels %}
+    - "{{ label }}"
+{% endfor %}
+
+container:
+  privileged: false
+  # no Docker socket inside job containers
+  docker_host: "-"
+
+server:
+  connections:
+    forgejo:
+      url: http://127.0.0.1:{{ forgejo_http_port }}/
+      uuid: "{{ forgejo_runner_uuid }}"
+      token_url: file:/etc/forgejo-runner/token

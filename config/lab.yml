@@ -133,7 +133,7 @@ labs:
   # The DevOps lab, on the devops segment (internet allowed), VMIDs 2000-2999.
   # cloud_init: true builds a VM from the Debian 13 cloud image instead of an
   # OVA (terraform/cloud_vms.tf); its address is in the inventory's devops group.
-  # make devops then installs k3s (docs/13-devops-lab.md).
+  # make devops then installs k3s and Forgejo (docs/13-devops-lab.md).
   devops:
     vms:
       - vmid: 2001
@@ -152,3 +152,11 @@ labs:
         vnet: devops
         cloud_init: true
         disk_gb: 20
+      - vmid: 2003
+        name: forge             # Forgejo + its Actions runner (Docker for the jobs)
+        node: pve2
+        memory: 2048
+        cores: 2
+        vnet: devops
+        cloud_init: true
+        disk_gb: 40             # repositories and job images

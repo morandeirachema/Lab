@@ -1,0 +1,25 @@
+---
+# Forgejo and its Actions runner, from their release binaries, checked by SHA-256.
+# Both were verified against their .asc signatures by Forgejo's release key
+# EB114F5E6C0DC2BCDD183550A4B61A2DC5923710 (forgejo.org/download) when pinned.
+# v15 is the LTS line, "supported until 15 July 2027" (forgejo.org/releases, Oct 2026).
+forgejo_version: 15.0.10
+forgejo_sha256: eeb96095f610b6fbcd768e11b94cb345923f580d550d9cba44ee690d2a61daab
+forgejo_runner_version: 13.2.0
+forgejo_runner_sha256: fadaec897f5e6641c363f87ecaf75f866f99c81b7097ec6b433e4c48123fcad1
+forgejo_download: https://codeberg.org/forgejo/forgejo/releases/download
+forgejo_runner_download: https://code.forgejo.org/forgejo/runner/releases/download
+
+forgejo_http_port: 3000
+
+# The first admin account. Forgejo generates its password (--random-password)
+# and requires a new one at first login; the generated one is written here,
+# on the machine running Ansible (0600).
+forgejo_admin_user: labadmin
+forgejo_admin_password_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/lab/forgejo-admin-password"
+
+# Labels the runner offers; a workflow picks one with runs-on. The format is
+# "<label>:docker://<default image>" (Forgejo's runner configuration docs).
+forgejo_runner_labels:
+  - docker:docker://docker.io/library/node:lts-trixie
+forgejo_runner_capacity: 1
