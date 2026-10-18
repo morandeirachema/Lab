@@ -5,13 +5,14 @@ TOFU       ?= tofu
 LAB        ?= wallix
 CMD        ?= status
 NAME       ?=
+RELEASE    ?=
 TOKEN_FILE ?= $(HOME)/.config/lab/proxmox-api-token
 
 # The cluster starts with Proxmox's self-signed certificate (docs/07-remote-management.md).
 export PROXMOX_VE_INSECURE ?= true
 
 .DEFAULT_GOAL := help
-.PHONY: help check ping nodes routes iac init plan apply gateway obs qdevice remote unpack lab token
+.PHONY: help check ping nodes routes iac init plan apply gateway obs qdevice remote unpack kali lab token
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-9s %s\n", $$1, $$2 }'
@@ -62,6 +63,9 @@ remote: ## Optional: Tailscale on the nodes (export TS_AUTHKEY for the first joi
 unpack: ## Unpack and verify an OVA for import: make unpack OVA=~/path/appliance.ova
 	@test -n "$(OVA)" || { echo "usage: make unpack OVA=path/to/appliance.ova"; exit 1; }
 	scripts/ova-unpack.sh "$(OVA)"
+
+kali: ## Fetch and verify Kali's QEMU image for the cyber range: make kali [RELEASE=2026.2]
+	scripts/kali-fetch.sh $(RELEASE)
 
 lab: ## Operate a lab: make lab LAB=wallix CMD=status|start|stop|snapshots|snapshot|rollback NAME=...
 	scripts/lab-ctl.sh $(LAB) $(CMD) $(NAME)
