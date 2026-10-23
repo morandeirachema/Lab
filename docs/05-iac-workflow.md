@@ -34,6 +34,7 @@ against the provider's real schema, without touching the cluster.
 | NAS volume, `proxmox` share, NFS rules | DSM is configured in its own UI ([09](09-nas-and-control-node.md)); OpenTofu then adds the storage |
 | Pi-hole's `dns.revServers` entry | One setting in an existing container on the NAS ([09](09-nas-and-control-node.md#5-lab-names-through-pi-hole)) |
 | Mac mini as control node: `pmset`, Remote Login | macOS settings behind an admin password, wanted on the mini only; its tools (`make tools`) and SSH names (`make control`) are code ([09](09-nas-and-control-node.md)) |
+| SSH from the MacBook Neo to the Mac mini: a key and a `Host macmini` entry | Only what macOS ships (`ssh`, `ssh-copy-id`), so nothing gets installed on the MacBook; `ssh-copy-id` asks for the Mac mini's password once ([09](09-nas-and-control-node.md#from-the-macbook-neo)) |
 | Trusting the cluster CA in macOS, turning TLS verification on | `make iac` copies the CA; the Keychain import needs `sudo`, and verification first needs the certificate names checked ([07](07-remote-management.md#3-trusting-the-clusters-certificate)) |
 | Two-factor login for the web UI | Enrolling a TOTP secret is done by whoever holds the authenticator ([07](07-remote-management.md#hardening-checklist)) |
 | Accepting SSH host keys | First `ssh` to each node, `labgw`, `obs` and the DevOps VMs; Ansible checks host keys and won't accept them silently |
@@ -93,6 +94,7 @@ make lab LAB=wallix CMD=start    # by hand: WALLIX's first-boot wizard and licen
 # --- Any time later
 #   NAS share ready (09):  nas.enabled: true in config/lab.yml, then make apply
 #   Tailscale (07):        tailscale_enabled: true, export TS_AUTHKEY=…, make remote
+#   MacBook Neo (09):      by hand: Remote Login on the Mac mini; Host macmini, ssh-copy-id macmini
 #   Hardening (07):        pve_base_ssh_disable_passwords: true, make nodes; TOTP; TLS verification
 ```
 

@@ -5,10 +5,10 @@ Two always-on machines next to the cluster, each with one job:
 | Machine | Role | Why it is a good fit |
 |---|---|---|
 | **Synology DS224+** (`192.168.1.219`) | NFS storage for backups, ISOs and templates | Always on, outside the cluster, with disks meant for data |
-| **Mac mini (M4, 16 GB)** | Control node: runs `make`, keeps the OpenTofu state and the API token; hosts the QDevice VM | Always on at home; the laptop drives it from anywhere over Tailscale |
+| **Mac mini (M4, 16 GB)** | Control node: runs `make`, keeps the OpenTofu state and the API token; hosts the QDevice VM | Always on at home; the MacBook Neo drives it over SSH ([below](#from-the-macbook-neo)) |
 
-The laptop stays a client. It can run everything too, but state and secrets have one
-home: the Mac mini.
+The MacBook Neo (A18 Pro, 8 GB, [Apple's specs](https://www.apple.com/macbook-neo/specs/))
+stays a client. It can run everything too, but state and secrets have one home: the Mac mini.
 
 ## The DS224+ as NFS storage
 
@@ -179,7 +179,7 @@ sudo pmset -a autorestart 1    # restart after a power loss
 sudo pmset -a womp 1           # wake on Ethernet magic packet
 ```
 
-Turn on *Remote Login* in System Settings → General → Sharing, so the laptop can SSH in.
+Turn on *Remote Login* so the MacBook Neo can SSH in ([below](#from-the-macbook-neo)).
 Install Tailscale on the Mac mini too, so that works from outside home.
 
 ### Tools and repo
@@ -198,13 +198,60 @@ Run `make iac` **from the Mac mini**, so the API token file is created there
 `terraform/terraform.tfstate` lives there. Keep that file in a backup you already use,
 for example a Time Machine destination on the NAS if you set one up.
 
-### From the laptop
+### From the MacBook Neo
 
-```sh
-ssh macmini 'cd ~/code/Lab && make lab LAB=wallix CMD=status'
+Plain SSH, with what macOS already ships (`ssh`, `ssh-keygen`, `ssh-copy-id`), so nothing
+is installed on either Mac. The MacBook finds the Mac mini by its Bonjour name, so no
+address is written down twice.
+
+**On the Mac mini, once.** In System Settings → General → Sharing, turn on *Remote Login*,
+then click its Info button
+([Apple: Allow a remote computer to access your Mac](https://support.apple.com/guide/mac-help/allow-a-remote-computer-to-access-your-mac-mchlp1066/mac)):
+
+- *Allow access for*: only your user.
+- *Allow full disk access for remote users*: leave it off unless a command over SSH is
+  refused access to a file.
+- Under *Remote Login: On*, the pane shows the exact `ssh` command for this Mac: your user
+  and its host name. `scutil --get LocalHostName` prints the Bonjour name (`man scutil`),
+  which the Mac answers to as `<name>.local`.
+
+**On the MacBook Neo, once.** If `~/.ssh/id_ed25519.pub` doesn't exist yet, make a key
+with `ssh-keygen -t ed25519`. Then add the Mac mini to `~/.ssh/config`:
+
+```
+Host macmini
+  HostName <LocalHostName>.local
+  User <your user on the Mac mini>
 ```
 
-Or run `make lab` on the laptop directly, with a copy of the token. `lab-ctl.sh` only
+```sh
+ssh-copy-id macmini      # asks for your Mac mini password once; key login from then on
+ssh macmini              # accept its host key the first time
+```
+
+**Running `make` there.** `ssh macmini`, then `cd ~/code/Lab` and any target, `make tui`
+included. A command on the `ssh` line itself runs in a non-login shell with sshd's `PATH`
+(`/usr/bin:/bin:/usr/sbin:/sbin`). Homebrew's `/opt/homebrew/bin` comes from
+`/etc/zprofile` and `~/.zprofile`, which zsh reads only for login shells (`man zsh`,
+STARTUP/SHUTDOWN FILES):
+
+```sh
+ssh macmini 'cd ~/code/Lab && make lab LAB=wallix CMD=status'   # make, curl, jq: all in /usr/bin
+ssh -t macmini 'zsh -lc "cd ~/code/Lab && make tui"'            # uv, tofu, ansible need a login shell; -t: a terminal
+```
+
+`jq` in `/usr/bin` was checked on the MacBook's macOS 27.0.1. On the Mac mini,
+`ssh macmini command -v jq` tells.
+
+- `make tui` runs on the Mac mini, so the Apps tab's `o` opens a browser *there*. Open the
+  URL on the MacBook instead.
+- Don't forward your agent (`ssh -A`). The Mac mini has its own key on the nodes, and
+  `ssh_config(5)` says agent forwarding "should be enabled with caution".
+- `.local` names resolve only on the home LAN: multicast DNS works on the local link
+  ([RFC 6762](https://www.rfc-editor.org/rfc/rfc6762)). Away from home, put the Mac mini's
+  Tailscale name in `HostName` instead (Tailscale on both Macs).
+
+Or run `make lab` on the MacBook directly, with a copy of the token. `lab-ctl.sh` only
 needs the token and the API endpoint, not the state.
 
 ### What the Mac mini is not
