@@ -8,9 +8,9 @@ locals {
   obs         = try(local.lab.observability, { enabled = false })
   obs_enabled = try(local.obs.enabled, false)
   obs_ip      = try(local.inventory.all.children.observability.hosts.obs.ansible_host, null)
-  obs_net     = local.obs_enabled ? one([for n in local.lab.gateway.nets : n if n.vnet == local.obs.vnet]) : null
-  obs_gateway = local.obs_net != null ? split("/", local.obs_net.address)[0] : null
-  obs_prefix  = local.obs_net != null ? split("/", local.obs_net.address)[1] : null
+  obs_net     = local.obs_enabled ? try(local.net_by_vnet[local.obs.vnet], null) : null
+  obs_gateway = try(local.obs_net.router, null)
+  obs_prefix  = try(local.obs_net.prefix, null)
   # null-safe, so observability.enabled: false (count = 0) still validates and the
   # preconditions below can say what is missing
   obs_cidr = local.obs_ip != null && local.obs_prefix != null ? "${local.obs_ip}/${local.obs_prefix}" : null
