@@ -8,6 +8,15 @@ locals {
   lan_prefix = split("/", local.lab.lan.cidr)[1]
   vxlan      = local.lab.sdn.type == "vxlan"
 
+  # Each gateway net by vnet, with labgw's address on it (gateway and DNS server
+  # for guests with a static address) and the prefix length.
+  net_by_vnet = {
+    for n in local.lab.gateway.nets : n.vnet => merge(n, {
+      router = split("/", n.address)[0]
+      prefix = split("/", n.address)[1]
+    })
+  }
+
   # Every lab's VMs, and every guest's VMID, for the uniqueness checks below.
   all_lab_vms = flatten([for l in values(local.lab.labs) : l.vms])
   guest_ids = concat(
@@ -50,7 +59,7 @@ resource "terraform_data" "config_checks" {
     }
     precondition {
       # the collector must be reachable and must reach its package mirrors
-      condition     = !local.obs_enabled || !try(one([for n in local.lab.gateway.nets : n if n.vnet == local.obs.vnet]).isolated, false)
+      condition     = !local.obs_enabled || !try(local.net_by_vnet[local.obs.vnet].isolated, false)
       error_message = "config/lab.yml: the observability vnet can't be an isolated gateway net."
     }
     precondition {

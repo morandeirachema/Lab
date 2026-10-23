@@ -5,7 +5,15 @@
 # lease from labgw. Like every lab VM it is created stopped (lab-ctl starts it).
 
 locals {
-  cloud_vms = { for name, vm in local.lab_vms : name => vm if try(vm.cloud_init, false) }
+  # Each VM with its inventory address (null: a DHCP lease), its gateway net,
+  # and the user cloud-init creates (the lab group's ansible_user).
+  cloud_vms = {
+    for name, vm in local.lab_vms : name => merge(vm, {
+      ip   = try(local.lab_inventory_hosts[vm.lab][name].ansible_host, null)
+      net  = try(local.net_by_vnet[vm.vnet], null)
+      user = try(local.inventory.all.children[vm.lab].vars.ansible_user, "debian")
+    }) if try(vm.cloud_init, false)
+  }
 
   # The hosts of each lab's inventory group, one level of child groups included.
   lab_inventory_hosts = {
@@ -15,10 +23,6 @@ locals {
       try({ for h, v in g.hosts : h => v }, {})]...
     )
   }
-
-  cloud_vm_ip   = { for name, vm in local.cloud_vms : name => try(local.lab_inventory_hosts[vm.lab][name].ansible_host, null) }
-  cloud_vm_net  = { for name, vm in local.cloud_vms : name => one([for n in local.lab.gateway.nets : n if n.vnet == vm.vnet]) }
-  cloud_vm_user = { for name, vm in local.cloud_vms : name => try(local.inventory.all.children[vm.lab].vars.ansible_user, "debian") }
 
   # Each node that runs a cloud-image VM needs the image in its own storage.
   cloud_image_nodes = toset(concat(local.obs_enabled ? [local.obs.node] : [], [for vm in values(local.cloud_vms) : vm.node]))
@@ -82,21 +86,21 @@ resource "proxmox_virtual_environment_vm" "lab_cloud" {
 
     # A static address uses labgw's dnsmasq on that net; a DHCP lease brings its own.
     dynamic "dns" {
-      for_each = local.cloud_vm_ip[each.key] != null ? [1] : []
+      for_each = each.value.ip != null ? [1] : []
       content {
-        servers = [try(split("/", local.cloud_vm_net[each.key].address)[0], null)]
+        servers = [try(each.value.net.router, null)]
       }
     }
 
     ip_config {
       ipv4 {
-        address = local.cloud_vm_ip[each.key] != null ? "${local.cloud_vm_ip[each.key]}/${try(split("/", local.cloud_vm_net[each.key].address)[1], "24")}" : "dhcp"
-        gateway = local.cloud_vm_ip[each.key] != null ? try(split("/", local.cloud_vm_net[each.key].address)[0], null) : null
+        address = each.value.ip != null ? "${each.value.ip}/${try(each.value.net.prefix, "24")}" : "dhcp"
+        gateway = each.value.ip != null ? try(each.value.net.router, null) : null
       }
     }
 
     user_account {
-      username = local.cloud_vm_user[each.key] # the lab group's ansible_user
+      username = each.value.user
       keys     = var.ssh_public_keys
     }
   }
@@ -117,9 +121,9 @@ resource "proxmox_virtual_environment_vm" "lab_cloud" {
       error_message = "${each.key}: cloud_init: true builds the disk from the cloud image; remove disks."
     }
     precondition {
-      condition = local.cloud_vm_ip[each.key] == null ? length(try(local.cloud_vm_net[each.key].dhcp, [])) == 2 : (
-        local.cloud_vm_net[each.key] != null &&
-        try(cidrsubnet("${local.cloud_vm_ip[each.key]}/${split("/", local.cloud_vm_net[each.key].address)[1]}", 0, 0) == cidrsubnet(local.cloud_vm_net[each.key].address, 0, 0), false)
+      condition = each.value.ip == null ? length(try(each.value.net.dhcp, [])) == 2 : (
+        each.value.net != null &&
+        try(cidrsubnet("${each.value.ip}/${each.value.net.prefix}", 0, 0) == cidrsubnet(each.value.net.address, 0, 0), false)
       )
       error_message = "${each.key}: give it an address in the ${each.value.lab} inventory group, inside the ${each.value.vnet} gateway net, or put it on a gateway net with a DHCP range."
     }

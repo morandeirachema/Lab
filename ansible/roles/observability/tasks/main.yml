@@ -1,6 +1,4 @@
 ---
-# Expects config/lab.yml loaded as `lab` (see playbooks/observability.yml).
-
 # Checked before anything changes: a failed check later in the run would drop the
 # restart handlers already notified, and a re-run would not restart those services.
 # The admin password lives in a root-owned file that Grafana reads through its

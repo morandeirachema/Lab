@@ -15,32 +15,21 @@ loki.relabel "syslog" {
 }
 
 loki.source.syslog "lab" {
+{% for protocol in ['tcp', 'udp'] %}
   listener {
     address       = "0.0.0.0:{{ lab.observability.syslog_port | int }}"
-    protocol      = "tcp"
+    protocol      = "{{ protocol }}"
     syslog_format = "{{ observability_syslog_format }}"
-    labels        = { source = "syslog", protocol = "tcp" }
-{% if observability_syslog_format == 'rfc5424' %}
+    labels        = { source = "syslog", protocol = "{{ protocol }}" }
+{%   if observability_syslog_format == 'rfc5424' %}
     // Keep the whole RFC 5424 record (structured data included) as the log line,
     // and don't drop records whose MSG part is empty.
     use_rfc5424_message     = true
     rfc5424_allow_empty_msg = true
-{% endif %}
+{%   endif %}
   }
 
-  listener {
-    address       = "0.0.0.0:{{ lab.observability.syslog_port | int }}"
-    protocol      = "udp"
-    syslog_format = "{{ observability_syslog_format }}"
-    labels        = { source = "syslog", protocol = "udp" }
-{% if observability_syslog_format == 'rfc5424' %}
-    // Keep the whole RFC 5424 record (structured data included) as the log line,
-    // and don't drop records whose MSG part is empty.
-    use_rfc5424_message     = true
-    rfc5424_allow_empty_msg = true
-{% endif %}
-  }
-
+{% endfor %}
   relabel_rules = loki.relabel.syslog.rules
   forward_to    = [loki.write.local.receiver]
 }

@@ -7,4 +7,4 @@ pve_base_reboot: false            # true = reboot one node at a time when the up
 pve_base_zfs_arc_max_gib: 2       # 0 = leave the installer's value
 pve_base_ssh_disable_passwords: false   # flip to true once key login works for you
 
-tailscale_enabled: false          # see docs/06-remote-management.md
+tailscale_enabled: false          # see docs/07-remote-management.md

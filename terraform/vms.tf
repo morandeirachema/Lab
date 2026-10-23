@@ -10,8 +10,13 @@ locals {
     }
   ]...)
 
-  # VMs from disk images; the cloud_init: true ones are in cloud_vms.tf.
-  image_vms = { for name, vm in local.lab_vms : name => vm if !try(vm.cloud_init, false) }
+  # VMs from disk images; the cloud_init: true ones are in cloud_vms.tf. The
+  # defaults suit a VirtualBox export: BIOS, SATA (AHCI) disks and an e1000 NIC,
+  # the hardware VirtualBox emulates by default, so the guest has the drivers.
+  image_vm_defaults = { os = "l26", firmware = "bios", bus = "sata", nic = "e1000", mac = null, tpm = false, agent = false }
+  image_vms = {
+    for name, vm in local.lab_vms : name => merge(local.image_vm_defaults, vm) if !try(vm.cloud_init, false)
+  }
 
   lab_disks = merge([
     for name, vm in local.image_vms : {
@@ -59,12 +64,12 @@ resource "proxmox_virtual_environment_vm" "lab" {
   on_boot         = false
   stop_on_destroy = true
 
-  bios          = try(each.value.firmware, "bios") == "efi" ? "ovmf" : "seabios"
+  bios          = each.value.firmware == "efi" ? "ovmf" : "seabios"
   scsi_hardware = "virtio-scsi-single"
-  boot_order    = ["${try(each.value.bus, "sata")}0"]
+  boot_order    = ["${each.value.bus}0"]
 
   operating_system {
-    type = try(each.value.os, "l26")
+    type = each.value.os
   }
 
   cpu {
@@ -76,11 +81,10 @@ resource "proxmox_virtual_environment_vm" "lab" {
     dedicated = each.value.memory
   }
 
-  # VirtualBox guests have SATA (AHCI) drivers; keep that bus unless told otherwise.
   dynamic "disk" {
     for_each = { for i, d in each.value.disks : i => d }
     content {
-      interface    = "${try(each.value.bus, "sata")}${disk.key}"
+      interface    = "${each.value.bus}${disk.key}"
       datastore_id = local.lab.storage.vm
       import_from  = proxmox_virtual_environment_file.disk_image["${each.key}-${disk.key}"].id
       size         = disk.value.size_gb
@@ -89,7 +93,7 @@ resource "proxmox_virtual_environment_vm" "lab" {
   }
 
   dynamic "efi_disk" {
-    for_each = try(each.value.firmware, "bios") == "efi" ? [1] : []
+    for_each = each.value.firmware == "efi" ? [1] : []
     content {
       datastore_id      = local.lab.storage.vm
       type              = "4m"
@@ -98,24 +102,23 @@ resource "proxmox_virtual_environment_vm" "lab" {
   }
 
   dynamic "tpm_state" {
-    for_each = try(each.value.tpm, false) ? [1] : []
+    for_each = each.value.tpm ? [1] : []
     content {
       datastore_id = local.lab.storage.vm
       version      = "v2.0"
     }
   }
 
-  # e1000 is what VirtualBox emulates by default, so the guest has its driver.
   network_device {
     bridge      = each.value.vnet
-    model       = try(each.value.nic, "e1000")
-    mac_address = try(each.value.mac, null)
+    model       = each.value.nic
+    mac_address = each.value.mac
     # A virtio NIC can take the vnet's MTU (1450 on VXLAN); emulated NICs cannot.
-    mtu = local.vxlan && try(each.value.nic, "e1000") == "virtio" ? 1 : null
+    mtu = local.vxlan && each.value.nic == "virtio" ? 1 : null
   }
 
   agent {
-    enabled = try(each.value.agent, false)
+    enabled = each.value.agent
   }
 
   lifecycle {
@@ -130,11 +133,11 @@ resource "proxmox_virtual_environment_vm" "lab" {
       error_message = "${each.key}: vnet '${each.value.vnet}' is not in sdn.vnets."
     }
     precondition {
-      condition     = contains(["bios", "efi"], try(each.value.firmware, "bios"))
+      condition     = contains(["bios", "efi"], each.value.firmware)
       error_message = "${each.key}: firmware must be bios or efi."
     }
     precondition {
-      condition     = contains(["sata", "scsi", "virtio"], try(each.value.bus, "sata"))
+      condition     = contains(["sata", "scsi", "virtio"], each.value.bus)
       error_message = "${each.key}: bus must be sata, scsi or virtio (the interfaces the provider can import to)."
     }
   }

@@ -1,7 +1,11 @@
 ---
+# config/lab.yml, the lab's declaration, as `lab` in every play: the same file
+# OpenTofu reads (terraform/locals.tf). Read when a play first needs it.
+lab: "{{ lookup('ansible.builtin.file', inventory_dir ~ '/../../config/lab.yml') | from_yaml }}"
+
 # The network of each routed gateway net in config/lab.yml (isolated nets have
-# no route), e.g. 10.10.10.1/24 -> 10.10.10.0/24. Needs the file loaded as
-# `lab`; pve_base (node routes) and tailscale (subnet routes) both use it.
+# no route), e.g. 10.10.10.1/24 -> 10.10.10.0/24. pve_base (node routes) and
+# tailscale (subnet routes) both use it.
 # Plain arithmetic: Jinja has no bitwise operators.
 lab_routed_nets: >-
   {%- set out = [] -%}

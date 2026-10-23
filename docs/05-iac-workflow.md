@@ -17,8 +17,9 @@
 
 OpenTofu reads both YAML files, and Ansible reads `config/lab.yml`, so a value is never
 written twice. CI (`.github/workflows/check.yml`) runs `make check` on every push. It
-validates the shell scripts, the YAML, every playbook's syntax and the OpenTofu code
-against the provider's real schema, without touching the cluster.
+validates the shell scripts, the YAML, every playbook (syntax, and ansible-lint's
+`production` profile) and the OpenTofu code against the provider's real schema, and runs
+the console UI's tests, all without touching the cluster.
 
 ## Still manual, and why
 
@@ -104,7 +105,8 @@ and `make routes` (the nodes' routes to them).
 
 ## State and secrets
 
-- **OpenTofu state** is `terraform/terraform.tfstate`, on your Mac only (git-ignored).
+- **OpenTofu state** is `terraform/terraform.tfstate`, on the Mac mini only (git-ignored;
+  [09](09-nas-and-control-node.md#tools-and-repo)).
   Back it up like any other file you can't recreate easily. If it is lost, the lab still
   runs; you would re-adopt the resources with `tofu import`.
 - **The API token** is in `~/.config/lab/proxmox-api-token` (mode 0600). Proxmox shows a

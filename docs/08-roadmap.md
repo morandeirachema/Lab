@@ -39,8 +39,9 @@ waits for pve3 (phase 4).
 - No certificate depends on it. The plan dropped the **CKS** on 13 September 2026 and keeps
   the **CKA** only as a line already on the CV.
 
-Rough size: 3 × 4 GB for Kubernetes, plus 2–4 GB for the forge and monitoring. This
-phase really wants `pve3`.
+As declared in `config/lab.yml`: three 2 GB VMs (`k3s1`, `k3s2`, `forge`), 6 GB in all,
+across both nodes. Heavier workloads, such as more agents or CI that deploys into k3s,
+want `pve3`.
 
 ## Phase 3: cyber range (in code, `cyber` segment, isolated)
 

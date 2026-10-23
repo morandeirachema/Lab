@@ -1,8 +1,7 @@
 ---
 # k3s without piping an installer into sh: the release binary, checked by
 # SHA-256; the systemd unit k3s's install script writes; and the config file
-# k3s reads on start (/etc/rancher/k3s/config.yaml). Expects config/lab.yml
-# loaded as `lab` (playbooks/devops.yml).
+# k3s reads on start (/etc/rancher/k3s/config.yaml).
 - name: Install the k3s binary (checked against the release's SHA-256)
   ansible.builtin.get_url:
     url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version | urlencode }}/k3s"
@@ -28,13 +27,13 @@
 - name: Install the systemd unit
   ansible.builtin.template:
     src: k3s.service.j2
-    dest: "/etc/systemd/system/{{ 'k3s' if k3s_role == 'server' else 'k3s-agent' }}.service"
+    dest: /etc/systemd/system/{{ k3s_service }}.service
     mode: "0644"
   notify: Restart k3s
 
 - name: Start k3s at boot
   ansible.builtin.systemd_service:
-    name: "{{ 'k3s' if k3s_role == 'server' else 'k3s-agent' }}"
+    name: "{{ k3s_service }}"
     enabled: true
     state: started
     daemon_reload: true

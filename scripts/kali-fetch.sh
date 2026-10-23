@@ -20,7 +20,7 @@ log()  { printf '==> %s\n' "$*" >&2; }
 KALI_KEY_URL=https://archive.kali.org/archive-key.asc
 KALI_KEY_FPR=827C8569F2518CC677FECA1AED65462EC8D5E4C5
 
-[[ $# -le 1 && ${1:-} != -* ]] || { sed -n '2,13s/^# \{0,1\}//p' "$0"; exit 1; }
+[[ $# -le 1 && ${1:-} != -* ]] || { sed -n '2,/^set /s/^# \{0,1\}//p' "$0"; exit 1; }  # the header comment
 RELEASE=${1:-}
 if [[ -n $RELEASE ]]; then
   # cdimage.kali.org keeps the last releases as kali-<release>/

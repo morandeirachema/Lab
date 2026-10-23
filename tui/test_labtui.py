@@ -169,7 +169,12 @@ def test_workflows_are_the_makefile_targets():
 
 
 def test_formatting():
+    assert labtui.human_bytes(1023) == "1023 B"
+    assert labtui.human_bytes(1536) == "2 KiB"
+    assert labtui.human_bytes(5 * 2**20) == "5.0 MiB"
     assert labtui.human_bytes(16 * 2**30) == "16.0 GiB"
+    assert labtui.human_bytes(3.5 * 2**40) == "3.5 TiB"
+    assert labtui.human_bytes(2**50) == "1024.0 TiB"
     assert labtui.human_uptime(3 * 86400 + 7200) == "3d 2h"
     assert labtui.human_uptime(0) == "-"
 
@@ -266,6 +271,8 @@ async def test_lab_actions_run_lab_ctl(settings, stub_lab_ctl):
         assert await settle(pilot, lambda: stub_lab_ctl.exists())
         assert stub_lab_ctl.read_text().split("\n")[0] == "cyber start"
         assert await settle(pilot, lambda: "==> stub cyber start" in activity(app))
+        await pilot.press("l")
+        assert await settle(pilot, lambda: "cyber snapshots" in stub_lab_ctl.read_text())
 
 
 async def test_snapshot_names_are_checked(settings, stub_lab_ctl):

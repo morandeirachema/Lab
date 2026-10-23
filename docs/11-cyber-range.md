@@ -49,7 +49,7 @@ the nodes and have no IP interface on that VLAN.
 
 1. **The attacker VM.** On the Mac:
    ```sh
-   brew install gnupg sevenzip   # once
+   make tools                    # once: gpg and 7-Zip are in the Brewfile
    make kali                     # or: make kali RELEASE=2026.2
    ```
    `scripts/kali-fetch.sh` checks the release's `SHA256SUMS` against its signature by

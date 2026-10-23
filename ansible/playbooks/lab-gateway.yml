@@ -13,11 +13,6 @@
         (apt-get -q update && DEBIAN_FRONTEND=noninteractive apt-get -qy install python3)
       changed_when: false
 
-    - name: Load config/lab.yml
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../config/lab.yml"
-        name: lab
-
     - name: Gather facts
       ansible.builtin.setup:
   roles:

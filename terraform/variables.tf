@@ -8,13 +8,13 @@ variable "proxmox_endpoint" {
 }
 
 variable "proxmox_insecure" {
-  description = "Skip TLS verification. Proxmox ships a self-signed certificate; set false once your Mac trusts the cluster CA (docs/06-remote-management.md)."
+  description = "Skip TLS verification. Proxmox ships a self-signed certificate; set false once the Mac running OpenTofu trusts the cluster CA (docs/07-remote-management.md)."
   type        = bool
   default     = true
 }
 
 variable "ssh_public_keys" {
-  description = "SSH public keys for the infrastructure guests (labgw's root, obs's cloud-init user). make plan/apply pass the keys in your ssh-agent."
+  description = "SSH public keys for the guests OpenTofu configures: labgw's root, and the cloud-init user of obs and of the cloud_init lab VMs. make plan/apply pass the keys in your ssh-agent."
   type        = list(string)
   default     = []
 }
@@ -32,7 +32,7 @@ variable "debian_ct_template" {
 }
 
 variable "debian_cloud_image" {
-  description = "Debian 13 genericcloud image for the observability VM, pinned to a dated build in https://cloud.debian.org/images/cloud/trixie/ (sha512 from that build's SHA512SUMS)."
+  description = "Debian 13 genericcloud image for the observability VM and the cloud_init lab VMs, pinned to a dated build in https://cloud.debian.org/images/cloud/trixie/ (sha512 from that build's SHA512SUMS)."
   type = object({
     url    = string
     sha512 = string

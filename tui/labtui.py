@@ -7,7 +7,7 @@ health checks, and the make workflows. Live from the Proxmox API.
     make tui      (uv run --project tui --locked python tui/labtui.py)
 
 It reads the same settings as scripts/lab-ctl.sh:
-  PROXMOX_VE_ENDPOINT   default https://<first host in ansible/inventory/hosts.yml>:8006/
+  PROXMOX_VE_ENDPOINT   default https://<first proxmox host in ansible/inventory/hosts.yml>:8006/
   PROXMOX_VE_API_TOKEN  default: ~/.config/lab/proxmox-api-token (written by make iac)
   PROXMOX_VE_CACERT     the cluster CA to verify against (make iac copies it to ~/.config/lab/)
   PROXMOX_VE_INSECURE   true to accept the cluster's certificate unverified (the Makefile's default)
@@ -247,9 +247,9 @@ def fetch_state(api: Proxmox) -> ClusterState:
 # --- Formatting ---------------------------------------------------------------------
 
 
-def human_bytes(n: int) -> str:
-    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
-        if n < 1024 or unit == "TiB":
+def human_bytes(n: float) -> str:
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if n < 1024:
             return f"{n:.0f} {unit}" if unit in ("B", "KiB") else f"{n:.1f} {unit}"
         n /= 1024
     return f"{n:.1f} TiB"
@@ -729,9 +729,7 @@ class LabTUI(App):
                              hint="A letter, then letters, digits, _ or -, 2 to 40 characters."), then)
 
     def action_snapshots(self) -> None:
-        lab = self.selected_lab()
-        if lab:
-            self.lab_ctl(lab, "snapshots")
+        self.lab_action("snapshots")
 
     # --- guests (API) ---
     @work(thread=True, group="guest")

@@ -10,7 +10,7 @@
 *.iso
 *.mf
 
-# Unpacked OVAs and other build outputs (scripts/ova-unpack.sh)
+# Unpacked OVAs and other disk images (scripts/ova-unpack.sh, scripts/kali-fetch.sh)
 artifacts/
 
 # Local overrides and secrets
@@ -32,7 +32,7 @@ tui/.venv/
 __pycache__/
 .pytest_cache/
 
-# Terraform / OpenTofu (later phases)
+# OpenTofu: state, plugins, local variables
 .terraform/
 *.tfstate
 *.tfstate.*

@@ -14,6 +14,7 @@ Three small nodes in the end; two today.
 |---|---|---|
 | Synology DS224+ (`192.168.1.219`) | NFS storage, backups ([09](09-nas-and-control-node.md)) | Intel Celeron J4125 4C/4T; 2 GB RAM, 6 GB max (one slot, Synology modules only); 2 bays; 2 × 1 GbE; no M.2. From the [Product Specifications](https://global.synologydownload.com/download/Document/Hardware/ProductSpec/DiskStation/24-year/DS224%2B/enu/Product_Spec_DS224%2B_enu.pdf), Aug 2026 |
 | Mac mini (M4, 16 GB) | Control node, QDevice host ([09](09-nas-and-control-node.md)) | Apple silicon (ARM), so not a cluster node |
+| MacBook Neo | Client: the repo, and SSH to the Mac mini ([09](09-nas-and-control-node.md#from-the-macbook-neo)) | Apple A18 Pro (6-core CPU), 8 GB unified memory, Wi-Fi 6E, two USB-C ports and no Ethernet. From [Apple's tech specs](https://www.apple.com/macbook-neo/specs/) |
 
 ## What the sources say
 
@@ -63,8 +64,10 @@ Upgrading RAM is not a plan.
 | Left for guests | ~12–13 GB |
 
 Today that is about 25 GB for guests across two nodes. With `pve3` it becomes about
-37 GB. The gateway takes 256 MB and the observability VM 4 GB, both on `pve1`. Size the WALLIX lab's guests in `config/lab.yml` against this
-budget; Windows Server guests are the expensive part.
+37 GB. The gateway takes 256 MB and the observability VM 4 GB, both on `pve1`. The DevOps
+lab's VMs take 2 GB each while it runs: `k3s1` on `pve1`, `k3s2` and `forge` on `pve2`.
+Size the WALLIX lab's guests in `config/lab.yml` against this budget; Windows Server guests
+are the expensive part.
 
 ## BIOS settings (S12 Pro)
 
