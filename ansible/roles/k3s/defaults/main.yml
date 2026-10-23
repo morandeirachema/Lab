@@ -7,6 +7,8 @@ k3s_sha256: d73847bcd3c5fccef0115b372e2f9a91f3032dc84bbf71518a4617565294d313
 
 # server on the k3s_server host, agent elsewhere (playbooks/devops.yml sets it).
 k3s_role: server
+# The systemd unit k3s's install script names for that role.
+k3s_service: "{{ 'k3s' if k3s_role == 'server' else 'k3s-agent' }}"
 k3s_server_host: "{{ groups['k3s_server'][0] }}"
 
 # The cluster's admin kubeconfig, copied to the machine running Ansible (0600),

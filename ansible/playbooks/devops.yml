@@ -13,11 +13,6 @@
 
 - name: The k3s server
   hosts: k3s_server
-  pre_tasks:
-    - name: Load config/lab.yml (the lab domain for the certificate's names)
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../config/lab.yml"
-        name: lab
   roles:
     - role: k3s
       vars:
@@ -25,11 +20,6 @@
 
 - name: The k3s agents
   hosts: k3s_agents
-  pre_tasks:
-    - name: Load config/lab.yml
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../config/lab.yml"
-        name: lab
   roles:
     - role: k3s
       vars:
@@ -37,10 +27,5 @@
 
 - name: The forge
   hosts: forgejo
-  pre_tasks:
-    - name: Load config/lab.yml (the lab domain for the admin's address)
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../config/lab.yml"
-        name: lab
   roles:
     - role: forgejo

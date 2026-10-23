@@ -50,8 +50,8 @@ Do the same for changes to `scripts/`.
 **One declaration, two consumers.** `config/lab.yml` declares the lab (LAN, storage, SDN
 zone/vnets, pools, gateway, NAS, `labs.<lab>.vms`). `ansible/inventory/hosts.yml` holds
 **every address**: Proxmox nodes, `labgw`, the NAS. OpenTofu reads both files with
-`yamldecode` (`terraform/locals.tf`). Ansible reads `lab.yml` via `include_vars … name: lab`
-(`playbooks/lab-gateway.yml`). Never duplicate a value from either file elsewhere.
+`yamldecode` (`terraform/locals.tf`). Ansible loads `lab.yml` as `lab` for every play
+(`ansible/inventory/group_vars/all.yml`). Never duplicate a value from either file elsewhere.
 
 **Layers.**
 - Ansible roles configure hosts: `pve_base` per node, `pve_iac` once per cluster,

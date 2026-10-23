@@ -109,14 +109,12 @@
 # One route via labgw per routed gateway net (lab_routed_nets, from
 # inventory/group_vars/all.yml). Isolated nets get none: labgw forwards
 # nothing to them.
-- name: The lab nets can be routed (config/lab.yml loaded, labgw in the inventory)
+- name: The lab nets can be routed (labgw in the inventory)
   ansible.builtin.assert:
-    that:
-      - lab is defined
-      - "'labgw' in hostvars"
+    that: "'labgw' in hostvars"
     fail_msg: >-
-      pve_base_lab_routes is on, but config/lab.yml isn't loaded as `lab` or the inventory has
-      no labgw host. Run pve-postinstall.yml, or set pve_base_lab_routes: false.
+      pve_base_lab_routes is on, but the inventory has no labgw host. Add it, or set
+      pve_base_lab_routes: false.
   when: pve_base_lab_routes | bool
   tags: [routes]
 

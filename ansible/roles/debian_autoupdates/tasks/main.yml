@@ -1,6 +1,6 @@
 ---
 # Automatic security updates for the lab's long-running Debian guests
-# (the gateway container and the observability VM). The two APT::Periodic
+# (the gateway container, the observability VM, the DevOps VMs). The two APT::Periodic
 # lines are the "Manual Setup" in unattended-upgrades' README; which origins
 # get upgraded stays the package default (/etc/apt/apt.conf.d/50unattended-upgrades),
 # so third-party repositories such as Grafana's are not upgraded unattended.

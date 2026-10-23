@@ -1,5 +1,5 @@
 ---
-# Expects config/lab.yml loaded as `lab` (see playbooks/lab-gateway.yml).
+# Built from config/lab.yml (`lab`, inventory/group_vars/all.yml).
 # Interfaces: eth0 = home LAN, eth1.. = lab.gateway.nets in order (terraform/gateway.tf).
 
 - name: Install nftables and dnsmasq
