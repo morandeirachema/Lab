@@ -21,13 +21,13 @@ One YAML file describes the lab; OpenTofu and Ansible build it; `make` drives ev
 
 - **One source of truth.** [`config/lab.yml`](config/lab.yml) declares the segments, the gateway and every lab's VMs. [`ansible/inventory/hosts.yml`](ansible/inventory/hosts.yml) holds every address. OpenTofu and Ansible both read them, so nothing is written twice.
 - **VirtualBox OVAs in, Proxmox VMs out.** `make unpack` verifies an OVA against its manifest and reads its OVF. Then OpenTofu uploads the disks and builds the VM: SATA disks and an e1000 NIC, the hardware VirtualBox guests already have drivers for.
-- **Isolated lab segments across nodes.** An SDN zone (VLAN or VXLAN) with `pam`, `devops` and `cyber` vnets. A tiny gateway container gives them DHCP and DNS and enforces a firewall policy. `cyber` is isolated: its guests get a DHCP lease and nothing else, no route in or out.
+- **Isolated lab segments across nodes.** An SDN zone (VLAN or VXLAN) with `pam`, `devops`, `cyber` and `obs` vnets. A tiny gateway container gives them DHCP and DNS and enforces a firewall policy. `cyber` is isolated: its guests get a DHCP lease and nothing else, no route in or out.
 - **Logs and metrics in 4 GB.** WALLIX's audit trail goes over syslog into Loki, and Proxmox's own metrics over OTLP into Prometheus, with Grafana on top. The gateway lets the lab nets reach only the collector's ports.
 - **Remote by default.** `make lab` starts, stops, snapshots and rolls back whole labs over the Proxmox API. Tailscale reaches the nodes from anywhere without opening a port.
 - **A console UI.** `make tui` shows nodes, labs, guests and the lab's apps live. It can start, stop, snapshot and roll back, check each service, open web UIs and SSH, and run any `make` workflow. It's Textual, locked with uv, and tested in CI.
 - **No secrets in git.** The API token lives in `~/.config/lab/` (0600). The Tailscale key is read from the environment. OVAs and disks are git-ignored.
 - **Checked, not guessed.** Specs and commands come from Beelink, Intel, Proxmox, Tailscale and provider sources, linked in the docs. Anything unverified (like the S13 Pro's specs) is marked as unverified.
-- **CI on every push.** shellcheck, yamllint, Ansible syntax, ansible-lint at its strictest (`production`) profile, and `tofu validate` against the provider's real schema, all without touching the cluster. Actions are pinned by commit SHA and kept current by Dependabot.
+- **CI on every push.** shellcheck, yamllint, Ansible syntax, ansible-lint at its strictest (`production`) profile, `tofu validate` against the provider's real schema, and the console UI's tests, all without touching the cluster. Actions are pinned by commit SHA and kept current by Dependabot.
 
 ## 🗺️ Architecture
 
@@ -50,10 +50,13 @@ flowchart TB
       pam["pam · 10.10.10.0/24"]
       devops["devops · 10.10.20.0/24"]
       cyber["cyber · 10.10.30.0/24, isolated"]
+      obsnet["obs · 10.10.40.0/24"]
     end
     labgw["labgw<br/>dnsmasq + nftables"]
     wallix["WALLIX lab<br/>(from its OVAs)"]
+    obsvm["obs<br/>Loki, Prometheus, Grafana"]
     labgw --- pam --- wallix
+    labgw --- obsnet --- obsvm
   end
 
   tofu -- "API token" --> cluster
@@ -76,7 +79,7 @@ flowchart TB
 | Inside the gateway | Ansible `lab_gateway` | DHCP/DNS (dnsmasq), routing policy (nftables) |
 | Observability | OpenTofu + Ansible `observability` | the `obs` VM: Alloy, Loki, Prometheus, Grafana; Proxmox's metric push |
 | Remote access | Ansible `tailscale` | tailnet membership, subnet routes |
-| Operations | `scripts/` | OVA unpacking, lab power and snapshots |
+| Operations | `scripts/` | OVA unpacking, Kali's image, lab power and snapshots |
 
 ## 🚀 Quick start
 
@@ -129,7 +132,9 @@ Every step that stays manual is listed with its reason in
 | `pve3` | Beelink Mini S13 Pro | Intel N150 · 4C/4T | verify on arrival | verify on arrival | 🔜 later |
 
 Around the cluster: a **Synology DS224+** (NFS storage and backups) and a **Mac mini M4 (16 GB)**,
-the always-on control node and QDevice host ([docs/09](docs/09-nas-and-control-node.md)).
+the always-on control node and QDevice host, which a **MacBook Neo** drives over SSH
+([docs/09](docs/09-nas-and-control-node.md)). "The Mac" in the docs is whichever one runs
+`make`: normally the Mac mini.
 
 Beelink and Intel both state 16 GB as the maximum, so the lab is planned within that.
 Sources and BIOS settings are in [docs/01](docs/01-hardware.md).

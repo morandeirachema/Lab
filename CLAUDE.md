@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 Infrastructure as code for a Proxmox VE 9 homelab: two Beelink Mini S12 Pro nodes
-(`pve1`, `pve2`), an S13 Pro (`pve3`) later, a Synology DS224+ and a Mac mini as control
-node. Its first lab is a fully WALLIX PAM lab (lab/pool `wallix` on the `pam` segment),
+(`pve1`, `pve2`), an S13 Pro (`pve3`) later, a Synology DS224+, a Mac mini as control
+node and a MacBook Neo as client (SSH to the Mac mini, `docs/09`). Its first lab is a fully WALLIX PAM lab (lab/pool `wallix` on the `pam` segment),
 built from the owner's WALLIX VirtualBox OVAs, for the WCE-P certification. The cyber range (lab `cyber`, isolated
 segment, `docs/11`) is in code for CEH; `docs/12` maps the lab to CISSP projects. The DevOps lab (k3s, `docs/13`) is in code. Read `README.md` and `docs/05-iac-workflow.md`
 for the full picture.
@@ -107,7 +107,8 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
 - `proxmox_metrics_server` exists only when `observability.metrics_push` is true. Proxmox tests
   an OTel server on creation and fails if Alloy isn't answering yet.
 - SDN changes are applied by the `proxmox_sdn_applier` "lab" + "finalizer" pair, the
-  pattern from the provider's docs.
+  pattern from the provider's docs. "lab" watches `terraform_data.sdn_zone`, not the zone
+  resources themselves (see `replace_triggered_by` below).
 - `terraform_data.config_checks` and per-resource preconditions validate `lab.yml` at
   plan time.
 
@@ -127,6 +128,11 @@ token, `terraform@pve!provider=<secret>`, to `~/.config/lab/proxmox-api-token`.
   No `-` or `_`.
 - **Switching `sdn.type`** (vlan ↔ vxlan) after the first apply needs a teardown: PVE
   won't delete a zone that still has vnets.
+- **`replace_triggered_by` can't name a resource with no instances.** OpenTofu 1.13 fails
+  the plan ("no change found") whenever it has to look at one, which for a `count = 0`
+  resource is every plan after the first apply. Watch a `terraform_data` that holds only the
+  configured attributes instead (`terraform/sdn.tf`); computed ones like `pending` would
+  re-trigger it.
 - **`scripts/*.sh` run on macOS**, so they must work in bash 3.2. That rules out `${x,,}`,
   `mapfile` and associative arrays. Empty arrays under `set -u` need
   `${a[@]+"${a[@]}"}`. `lab-ctl.sh` keeps action calls inside `|| rc=1`, so check errors

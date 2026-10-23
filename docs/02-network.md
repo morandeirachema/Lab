@@ -15,10 +15,14 @@ flowchart LR
     pam["pam · tag 10<br/>10.10.10.0/24"]
     devops["devops · tag 20<br/>10.10.20.0/24"]
     cyber["cyber · tag 30<br/>10.10.30.0/24, isolated"]
+    obsnet["obs · tag 40<br/>10.10.40.0/24"]
   end
   labgw --- pam
+  labgw --- devops
   labgw -. DHCP only .- cyber
+  labgw --- obsnet
   pam --- wallix["WALLIX lab"]
+  obsnet --- obsvm["obs VM (collector)"]
 ```
 
 ## Address plan
@@ -34,7 +38,7 @@ your router's DHCP pool.
 
 | Segment | Tag | Subnet | Gateway / DHCP | Internet | Status |
 |---|---|---|---|---|---|
-| `pam` | 10 | `10.10.10.0/24` | `.1`, leases `.100–.199` | no | phase 1 |
+| `pam` | 10 | `10.10.10.0/24` | `.1`, leases `.100–.199` | no | in code ([06](06-wallix-lab.md)) |
 | `devops` | 20 | `10.10.20.0/24` | `.1`, leases `.100–.199`; `k3s1`/`k3s2` static at `.11`/`.12`, `forge` at `.20` | yes | in code ([13](13-devops-lab.md)) |
 | `cyber` | 30 | `10.10.30.0/24` | `.1` leases `.100–.199` and nothing else (`isolated: true`) | never | in code ([11](11-cyber-range.md)) |
 | `obs` | 40 | `10.10.40.0/24` | `.1`; the `obs` VM is static at `.10` | yes (packages) | in code ([10](10-observability.md)) |
@@ -135,7 +139,9 @@ deployed, that is the first suspect.
 
 ## Reaching the lab from the Mac
 
-The lab nets sit behind `labgw`, so your Mac needs a route to them. Pick one:
+The lab nets sit behind `labgw`, so a Mac needs a route to them: the Mac mini always
+(Ansible reaches `obs` and the DevOps VMs that way), the MacBook Neo when you open lab
+services from it. Pick one:
 
 Route every routed lab subnet: `10.10.10.0/24` (`pam`), `10.10.20.0/24` (`devops`) and
 `10.10.40.0/24` (`obs`). Add the others as you add them to `gateway.nets`; `cyber` is
@@ -150,7 +156,9 @@ isolated and needs none.
    sudo route -n add -net 10.10.40.0/24 192.168.1.20
    ```
 3. **On the Mac, persistent.** `networksetup` replaces the whole list each time, so
-   name every route you want to keep in the same call:
+   name every route you want to keep in the same call. The routes belong to one network
+   service: use the one the Mac is connected through (`networksetup -listallnetworkservices`
+   lists them; a wired Mac mini's isn't "Wi-Fi"):
    ```sh
    networksetup -setadditionalroutes "Wi-Fi" \
      10.10.10.0 255.255.255.0 192.168.1.20 \
