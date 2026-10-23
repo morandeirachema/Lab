@@ -12,7 +12,7 @@
 # Guests are found wherever they run now, so migrations do not matter.
 #
 # Environment (all optional):
-#   PROXMOX_VE_ENDPOINT   default https://<first host in ansible/inventory/hosts.yml>:8006/
+#   PROXMOX_VE_ENDPOINT   default https://<first proxmox host in ansible/inventory/hosts.yml>:8006/
 #   PROXMOX_VE_API_TOKEN  default: the file ansible/playbooks/pve-iac.yml wrote,
 #                         ~/.config/lab/proxmox-api-token
 #   PROXMOX_VE_CACERT     the cluster CA (a copy of /etc/pve/pve-root-ca.pem) to verify against
@@ -25,7 +25,7 @@ set -euo pipefail
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
 log()  { printf '==> %s\n' "$*"; }
-usage() { sed -n '2,23s/^# \{0,1\}//p' "$0"; exit 1; }
+usage() { sed -n '2,/^set /s/^# \{0,1\}//p' "$0"; exit 1; }  # the header comment
 
 LAB=${1:-} CMD=${2:-} ARG=${3:-}
 [[ -n $LAB && -n $CMD ]] || usage
@@ -43,7 +43,10 @@ done
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 if [[ -z ${PROXMOX_VE_ENDPOINT:-} ]]; then
-  first=$(awk '/ansible_host:/ { print $2; exit }' "$REPO_ROOT/ansible/inventory/hosts.yml")
+  # The first ansible_host after the proxmox group's key, as OpenTofu uses the first node.
+  first=$(awk '/^[[:space:]]+proxmox:/ { p = 1 } p && /ansible_host:/ { print $2; exit }' \
+            "$REPO_ROOT/ansible/inventory/hosts.yml")
+  [[ -n $first ]] || die "no proxmox host in ansible/inventory/hosts.yml: set PROXMOX_VE_ENDPOINT"
   PROXMOX_VE_ENDPOINT="https://$first:8006/"
 fi
 if [[ -z ${PROXMOX_VE_API_TOKEN:-} ]]; then

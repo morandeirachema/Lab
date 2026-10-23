@@ -15,7 +15,7 @@ die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
 log()  { printf '==> %s\n' "$*" >&2; }
 
-[[ $# -eq 1 && -f $1 ]] || { sed -n '2,11s/^# \{0,1\}//p' "$0"; exit 1; }
+[[ $# -eq 1 && -f $1 ]] || { sed -n '2,/^set /s/^# \{0,1\}//p' "$0"; exit 1; }  # the header comment
 OVA=$1
 case $OVA in *.ova|*.OVA) ;; *) die "expected a .ova file: $OVA" ;; esac
 
