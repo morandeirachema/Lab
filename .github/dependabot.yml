@@ -1,9 +1,9 @@
 ---
 # Keep the pinned CI actions, CI tools, the OpenTofu provider and the console
 # UI's locked dependencies current. All four ecosystems are in GitHub's
-# Dependabot options reference. A 7-day
-# cooldown keeps a just-published (possibly compromised) release out of a PR
-# until it has been public for a week; security updates are not delayed.
+# Dependabot options reference. A 7-day cooldown keeps a just-published
+# (possibly compromised) release out of a PR until it has been public for a
+# week; security updates are not delayed.
 version: 2
 updates:
   - package-ecosystem: github-actions
